@@ -290,14 +290,12 @@ rq.transfer <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mo
     return(w_hat+delta_hat)
   }
   if (mode=='real'){
-    lambda_1 <- tune_param(x_target,y_target,u_target)
     # Step 1:
     ## For target
     y_target_tild <- smoothy(x_target,y_target,u_target)$y
     ## For source
     y_aux_tild_bd = list()
     for (k in 1:length(x_aux_bd)){
-      lambda_1 <- tune_param(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])
       y_aux_tild_bd[[k]] <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])$y
     }
     # Step 2:
