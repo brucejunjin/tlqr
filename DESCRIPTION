@@ -7,7 +7,7 @@ Maintainer: Jun Jin <jun.jin@uconn.edu>
 Description: We provide implementation for transfer learning with high-dimensional quantile regression
     given the target and sources samples. Namely, the naive function to obtain the Oracle Trans-Lasso QR 
     estimator is provided, and to prevent negative transfer, the informative set detection procedure is
-    also provided when the number of set is known or not known. The relevant paper can be found at xxx.
+    also provided when the number of set is known or not known. 
 License: GPL-3
 Encoding: UTF-8
 Imports: MASS, glmnet, ExtDist, foreach, iterators, doParallel, SparseM, quantreg

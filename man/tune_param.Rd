@@ -8,8 +8,7 @@ tune_param(
   x,
   y,
   u,
-  method = "quantile",
-  size = 0.8,
+  size = 0.05,
   lower = -2,
   upper = 2,
   step = 0.05,
@@ -24,9 +23,7 @@ tune_param(
 
 \item{u}{A scalar. The quantile level for model.}
 
-\item{method}{A string. The default is 'quantile',control the tunning parameters for quantile model or linear model. Only 'quantile' or 'lasso' is permitted.}
-
-\item{size}{A scalar in [0,1]. default is 0.8, the proportion of validation sample.}
+\item{size}{A scalar in [0,1]. default is 0.05, the proportion of validation sample.}
 
 \item{lower}{A scalar. The default is -2, the lower bound for grid search, established by exp(lower).}
 

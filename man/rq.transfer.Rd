@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{rq.transfer}
 \alias{rq.transfer}
-\title{Build the function for Oracle Trans-Lasso QR with a given informative sources set}
+\title{Oracle Trans-Lasso QR with a given informative sources set}
 \usage{
 rq.transfer(
   x_target,
@@ -23,15 +23,15 @@ rq.transfer(
 
 \item{y_aux_bd}{A list object that each element is a vector with length n as the covariate from informative sources.}
 
-\item{u_target}{A scalar. The quantile level for model of target population.}
+\item{u_target}{A scalar in (0,1). The quantile level for model of target population.}
 
 \item{u_aux_bd}{A vector that contains the quantile level for informative populations.}
 
-\item{mode}{A string. Default is 'real'. A model controler to tell 'simulation' vs 'real', this lead to different operations for tunning parameters of single-source modeling.}
+\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.}
 }
 \value{
 A vector. The corresponding transfer learning estimator based on the given auxiliary sources.
 }
 \description{
-Build the function for Oracle Trans-Lasso QR with a given informative sources set
+Oracle Trans-Lasso QR with a given informative sources set
 }

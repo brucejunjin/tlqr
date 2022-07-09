@@ -4,7 +4,7 @@
 \alias{Q_loss}
 \title{Build the auxiliary function to compute quantile loss for informative sources detection}
 \usage{
-Q_loss(betahat, betaic, X_measure, y_measure, u_target)
+Q_loss(betahat, betaic, X_measure, y_measure, u_target, hic = NULL)
 }
 \arguments{
 \item{betahat}{Estimator for target only from training part.}
@@ -15,7 +15,9 @@ Q_loss(betahat, betaic, X_measure, y_measure, u_target)
 
 \item{y_measure}{A vector as the response from the population that is waiting for the test.}
 
-\item{u_target}{A scalar. The quantile level for informative source detection testing.}
+\item{u_target}{A scalar in (0,1). The quantile level for informative source detection testing.}
+
+\item{hic}{A scalar >0. The smoothing bandwidth for calculate the loss.}
 }
 \value{
 A scalar. The quantile loss for given estimator on the given testing samples.

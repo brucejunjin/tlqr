@@ -14,7 +14,7 @@ info_detect(
   epsilon = 0.01,
   mode = "real",
   psd = FALSE,
-  info_num = 2
+  info_num = 1
 )
 }
 \arguments{
@@ -26,17 +26,17 @@ info_detect(
 
 \item{y_aux_bd}{A list object that each element is a vector with length n as the covariate from informative sources.}
 
-\item{u_target}{A scalar. The quantile level for model of target population.}
+\item{u_target}{A scalar in (0,1). The quantile level for model of target population.}
 
 \item{u_aux_bd}{A vector that contains the quantile level for informative populations.}
 
 \item{epsilon}{A scalar. Default is 0.01. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.}
 
-\item{mode}{A string. Default is 'real'. A model controler to tell 'simulation' vs 'real', this lead to different operations for tunning parameters of single-source modeling.}
+\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.}
 
 \item{psd}{A boolean variable. Whether the procedure is pseudo.}
 
-\item{info_num}{A integar. The given number of informative sources under pseduo running.}
+\item{info_num}{A integar. Default is 1. The given number of informative sources under pseduo running.}
 }
 \value{
 A vector of index. The index of the informative sources.
