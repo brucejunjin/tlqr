@@ -201,6 +201,7 @@ tune_param <- function(x,y,u,size=0.05,lower=-2,upper=2,step=0.05,machines=10,se
 }
 
 
+
 #' Get the smoothened response (from the quantile model to least square model) variable by iterations
 #' @export
 #' @param x A n*p matrix as the covariate for response smoothening.
@@ -211,10 +212,10 @@ tune_param <- function(x,y,u,size=0.05,lower=-2,upper=2,step=0.05,machines=10,se
 #' @import quantreg
 #' @import glmnet
 #' @return y: A vector as the smoothed response. h: A scalar as the selected bandwidth.
-smoothy <- function(x,y,u,maxit=100,reltol=1e-2){
+smoothy <- function(x,y,u,maxit=100,reltol=5e-2){
   beta_old <- quantreg::rq.fit.lasso(x,y,u)$coefficients
   for (g in 1:maxit){
-    s0 <- sum(abs(beta_old)>=(max(beta_old)/10))
+    s0 <- sum(abs(beta_old)>=(max(beta_old)/5))
     h_target <- sqrt(s0*log(nrow(x))/nrow(x))+(s0^((2*(g-1)+1)/2))*(log(nrow(x))/nrow(x))^(g/2)
     f_target_hat <- 0
     while (f_target_hat <=0){
