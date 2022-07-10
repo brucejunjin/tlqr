@@ -433,8 +433,8 @@ info_detect <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,ep
     X0_index <- sample(target_index,size = round(nrow(x_target)/2),replace=F)
     X0_cut1 <- x_target[X0_index,]
     X0_cut2 <- x_target[-X0_index,]
-    y0_cut1 <- y_target[X0_index,]
-    y0_cut2 <- y_target[-X0_index,]
+    y0_cut1 <- y_target[X0_index]
+    y0_cut2 <- y_target[-X0_index]
     if (mode=='simulation'){
       # Step 1.2: train sparse quantile regression for I for X0, y0:
       lambda_0 <- tune_param(X0_cut1,y0_cut1,u=u_target)
