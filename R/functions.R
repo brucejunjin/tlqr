@@ -201,7 +201,6 @@ tune_param <- function(x,y,u,size=0.05,lower=-2,upper=2,step=0.05,machines=10,se
 }
 
 
-
 #' Get the smoothened response (from the quantile model to least square model) variable by iterations
 #' @export
 #' @param x A n*p matrix as the covariate for response smoothening.
@@ -222,21 +221,23 @@ smoothy <- function(x,y,u,maxit=100,reltol=5e-2){
       f_target_hat <- sum(apply(((y - x %*% beta_old) / h_target),1,K))/(nrow(x)*h_target)
       h_target <- h_target * 1.05
     }
-    print(f_target_hat)
     y_tild <- x %*% beta_old - f_target_hat^-1 *(ifelse(y-x %*% beta_old<=0,1,0)-u)
     fit <- glmnet::cv.glmnet(x=x,y = y_tild,alpha=1)
     beta_new <- as.vector(coef(fit, s = "lambda.min"))[2:length(coef(fit, s = "lambda.min"))]
     if (sum(abs(beta_new-beta_old))>reltol*sum(abs(beta_old))){
       beta_old <- beta_new
     } else {
+      if (f_target_hat^-1 >= 1e5){
+        print('The sample size is not sufficientlty large, or the sparsity condition is not satisfied! Please Check.')
+      }
       return(list(y=y_tild,h=h_target))
     }
   }
-  print('Reach the max iteration! Return the last response!')
+  if (f_target_hat^-1 >= 1e5){
+    print('The sample size is not sufficientlty large, or the sparsity condition is not satisfied! Please Check.')
+  }
   return(list(y=y_tild,h=h_target))
 }
-
-
 
 
 #' Oracle Trans-Lasso QR with a given informative sources set
