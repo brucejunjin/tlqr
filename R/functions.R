@@ -151,6 +151,7 @@ K <- function(x) {
 }
 
 #' Build the function for tunning the parameter based on given data (combine of train+valid)
+#' @export
 #' @param x A n*p matrix as the training and validation covariate.
 #' @param y A vector with length n as the response from training and validation.
 #' @param u A scalar. The quantile level for model.
