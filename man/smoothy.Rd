@@ -4,7 +4,7 @@
 \alias{smoothy}
 \title{Get the smoothened response (from the quantile model to least square model) variable by iterations}
 \usage{
-smoothy(x, y, u, maxit = 100, reltol = 0.01)
+smoothy(x, y, u, maxit = 100, reltol = 0.05)
 }
 \arguments{
 \item{x}{A n*p matrix as the covariate for response smoothening.}
@@ -18,7 +18,7 @@ smoothy(x, y, u, maxit = 100, reltol = 0.01)
 \item{reltol}{A scalar. Default is 1e-2. The relative tolerance for the stopping criterion.}
 }
 \value{
-y: A vector as the smoothed response. h: A scalar as the selected bandwidth.
+y: A vector as the smoothed response. h: A scalar as the selected bandwidth. converge: The convergence status, 0 is succuessful convergence.
 }
 \description{
 Get the smoothened response (from the quantile model to least square model) variable by iterations

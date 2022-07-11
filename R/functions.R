@@ -210,9 +210,10 @@ tune_param <- function(x,y,u,size=0.05,lower=-2,upper=2,step=0.05,machines=10,se
 #' @param reltol A scalar. Default is 1e-2. The relative tolerance for the stopping criterion.
 #' @import quantreg
 #' @import glmnet
-#' @return y: A vector as the smoothed response. h: A scalar as the selected bandwidth.
+#' @return y: A vector as the smoothed response. h: A scalar as the selected bandwidth. converge: The convergence status, 0 is succuessful convergence.
 smoothy <- function(x,y,u,maxit=100,reltol=5e-2){
   beta_old <- quantreg::rq.fit.lasso(x,y,u)$coefficients
+  converge <- 0
   for (g in 1:maxit){
     s0 <- sum(abs(beta_old)>=(max(beta_old)/5))
     h_target <- sqrt(s0*log(nrow(x))/nrow(x))+(s0^((2*(g-1)+1)/2))*(log(nrow(x))/nrow(x))^(g/2)
@@ -228,15 +229,15 @@ smoothy <- function(x,y,u,maxit=100,reltol=5e-2){
       beta_old <- beta_new
     } else {
       if (f_target_hat^-1 >= 1e5){
-        print('The sample size is not sufficientlty large, or the sparsity condition is not satisfied! Please Check.')
+        converge <- 1
       }
-      return(list(y=y_tild,h=h_target))
+      return(list(y=y_tild,h=h_target,converge=converge))
     }
   }
   if (f_target_hat^-1 >= 1e5){
-    print('The sample size is not sufficientlty large, or the sparsity condition is not satisfied! Please Check.')
+    converge <- 1
   }
-  return(list(y=y_tild,h=h_target))
+  return(list(y=y_tild,h=h_target,,converge=converge))
 }
 
 
@@ -295,11 +296,21 @@ rq.transfer <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mo
   if (mode=='real'){
     # Step 1:
     ## For target
-    y_target_tild <- smoothy(x_target,y_target,u_target)$y
+    smoothfit0 <- smoothy(x_target,y_target,u_target)
+    y_target_tild <- smoothfit0$y
+    conv <- smoothfit0$converge
+    if (conv!=0){
+      print('We encourage a larger sample size of the target to facilate the sparsity condition required.')
+    }
     ## For source
     y_aux_tild_bd = list()
     for (k in 1:length(x_aux_bd)){
-      y_aux_tild_bd[[k]] <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])$y
+      smoothfit1 <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])
+      y_aux_tild_bd[[k]] <- smoothfit1$y
+      conv <- smoothfit1$converge
+      if (conv!=0){
+        print(paste0(paste0('We encourage a larger sample size of the ',k),'-th source to facilate the sparsity condition required.'))
+      }
     }
     # Step 2:
     x_comb <- x_target
@@ -372,11 +383,21 @@ rq.fusion <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode
   if (mode=='real'){
     # Step 1:
     ## For target
-    y_target_tild <- smoothy(x_target,y_target,u_target)$y
+    smoothfit0 <- smoothy(x_target,y_target,u_target)
+    y_target_tild <- smoothfit0$y
+    conv <- smoothfit0$converge
+    if (conv!=0){
+      print('We encourage a larger sample size of the target to facilate the sparsity condition required.')
+    }
     ## For source
     y_aux_tild_bd = list()
     for (k in 1:length(x_aux_bd)){
-      y_aux_tild_bd[[k]] <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])$y
+      smoothfit1 <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])
+      y_aux_tild_bd[[k]] <- smoothfit1$y
+      conv <- smoothfit1$converge
+      if (conv!=0){
+        print(paste0(paste0('We encourage a larger sample size of the ',k),'-th source to facilate the sparsity condition required.'))
+      }
     }
     # Step 2:
     x_comb <- x_target
