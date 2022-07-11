@@ -237,7 +237,7 @@ smoothy <- function(x,y,u,maxit=100,reltol=5e-2){
   if (f_target_hat^-1 >= 1e5){
     converge <- 1
   }
-  return(list(y=y_tild,h=h_target,,converge=converge))
+  return(list(y=y_tild,h=h_target,converge=converge))
 }
 
 
