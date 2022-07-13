@@ -300,7 +300,7 @@ rq.transfer <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mo
     y_target_tild <- smoothfit0$y
     conv <- smoothfit0$converge
     if (conv!=0){
-      print('We encourage a larger sample size of the target to facilate the sparsity condition required.')
+      print('We encourage a larger sample size of the target \nto facilate the sparsity condition required.')
     }
     ## For source
     y_aux_tild_bd = list()
@@ -309,7 +309,7 @@ rq.transfer <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mo
       y_aux_tild_bd[[k]] <- smoothfit1$y
       conv <- smoothfit1$converge
       if (conv!=0){
-        print(paste0(paste0('We encourage a larger sample size of the ',k),'-th source to facilate the sparsity condition required.'))
+        print(paste0(paste0('We encourage a larger sample size of the number',k),' source \nto facilate the sparsity condition required.'))
       }
     }
     # Step 2:
@@ -387,7 +387,7 @@ rq.fusion <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode
     y_target_tild <- smoothfit0$y
     conv <- smoothfit0$converge
     if (conv!=0){
-      print('We encourage a larger sample size of the target to facilate the sparsity condition required.')
+      print('We encourage a larger sample size of the target \nto facilate the sparsity condition required.')
     }
     ## For source
     y_aux_tild_bd = list()
@@ -396,7 +396,7 @@ rq.fusion <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode
       y_aux_tild_bd[[k]] <- smoothfit1$y
       conv <- smoothfit1$converge
       if (conv!=0){
-        print(paste0(paste0('We encourage a larger sample size of the ',k),'-th source to facilate the sparsity condition required.'))
+        print(paste0(paste0('We encourage a larger sample size of the number',k),' source \nto facilate the sparsity condition required.'))
       }
     }
     # Step 2:
@@ -439,14 +439,25 @@ Q_loss <- function(betahat,betaic,X_measure,y_measure,u_target, hic=NULL){
 #' @param y_aux_bd A list object that each element is a vector with length n as the covariate from informative sources.
 #' @param u_target A scalar in (0,1). The quantile level for model of target population.
 #' @param u_aux_bd A vector that contains the quantile level for informative populations.
-#' @param epsilon A scalar. Default is 0.01. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.
+#' @param epsilon A scalar. Default is NULL. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.
 #' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.
-#' @param psd A boolean variable. Whether the procedure is pseudo.
-#' @param info_num A integar. Default is 1. The given number of informative sources under pseduo running.
+#' @param psd A boolean variable. Default is true. Whether the procedure is pseudo. 
+#' @param info_num A integar. Default is NULL. The given number of informative sources under pseduo running.
 #' @import quantreg
 #' @import utils
 #' @return A vector of index. The index of the informative sources.
-info_detect <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,epsilon=0.01,mode='real',psd=FALSE,info_num=1){
+info_detect <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode='real',psd=FALSE,info_num=NULL,epsilon=NULL){
+  if (psd==TRUE){
+    if (is.null(info_num)){
+      print('The argument info_num should be given!')
+      return()
+    }
+  } else{
+    if (is.null(epsilon)){
+      print('The argument epsilon should be given!')
+      return()
+    }
+  }
   if (length(x_aux_bd)!=length(y_aux_bd)){
     print('the # of datasets for x and y are not agreed!')
   } else {

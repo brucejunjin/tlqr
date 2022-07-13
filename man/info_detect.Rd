@@ -11,10 +11,10 @@ info_detect(
   y_aux_bd,
   u_target,
   u_aux_bd,
-  epsilon = 0.01,
   mode = "real",
   psd = FALSE,
-  info_num = 1
+  info_num = NULL,
+  epsilon = NULL
 )
 }
 \arguments{
@@ -30,13 +30,13 @@ info_detect(
 
 \item{u_aux_bd}{A vector that contains the quantile level for informative populations.}
 
-\item{epsilon}{A scalar. Default is 0.01. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.}
-
 \item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.}
 
-\item{psd}{A boolean variable. Whether the procedure is pseudo.}
+\item{psd}{A boolean variable. Default is true. Whether the procedure is pseudo.}
 
-\item{info_num}{A integar. Default is 1. The given number of informative sources under pseduo running.}
+\item{info_num}{A integar. Default is NULL. The given number of informative sources under pseduo running.}
+
+\item{epsilon}{A scalar. Default is NULL. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.}
 }
 \value{
 A vector of index. The index of the informative sources.
