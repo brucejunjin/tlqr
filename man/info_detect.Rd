@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{info_detect}
 \alias{info_detect}
-\title{Main function for informative sources detection among all dataset}
+\title{Informative sources detection}
 \usage{
 info_detect(
   x_target,
@@ -42,5 +42,5 @@ info_detect(
 A vector of index. The index of the informative sources.
 }
 \description{
-Main function for informative sources detection among all dataset
+The main function for informative sources detection among all datasets. This is a general function that can implement both Pseudo and normal informative sources detection, it depends on the input variables explained following.
 }

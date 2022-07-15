@@ -4,12 +4,9 @@ Title: Transfer Learning with High-dimensional Quantile Regression
 Version: 0.1.0
 Author: Jun Jin <jun.jin@uconn.edu>, Jun Yan <jun.yan@uconn.edu>, Kun Chen <kun.chen@uconn.edu>
 Maintainer: Jun Jin <jun.jin@uconn.edu>
-Description: We provide implementation for transfer learning with high-dimensional quantile regression
-    given the target and sources samples. Namely, the naive function to obtain the Oracle Trans-Lasso QR 
-    estimator is provided, and to prevent negative transfer, the informative set detection procedure is
-    also provided when the number of set is known or not known. 
+Description: We provide the implementation for transfer learning with high-dimensional quantile regression given the target and sources samples. Namely, the naive function to obtain the Oracle Trans-Lasso QR estimator is provided, and to prevent the negative transfer, the informative set detection procedure is also provided when the number of the informative set is known or not known. 
 License: GPL-3
 Encoding: UTF-8
-Imports: MASS, glmnet, ExtDist, foreach, iterators, doParallel, SparseM, quantreg
+Imports: MASS, glmnet, ExtDist, foreach, doParallel, quantreg
 LazyData: true
 RoxygenNote: 7.2.0

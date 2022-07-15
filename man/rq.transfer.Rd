@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{rq.transfer}
 \alias{rq.transfer}
-\title{Oracle Trans-Lasso QR with a given informative sources set}
+\title{Oracle Trans-Lasso QR}
 \usage{
 rq.transfer(
   x_target,
@@ -33,5 +33,5 @@ rq.transfer(
 A vector. The corresponding transfer learning estimator based on the given auxiliary sources.
 }
 \description{
-Oracle Trans-Lasso QR with a given informative sources set
+Implement Oracle Trans-Lasso QR with a given informative sources set.
 }

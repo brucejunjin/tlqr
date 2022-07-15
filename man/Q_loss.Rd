@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{Q_loss}
 \alias{Q_loss}
-\title{Build the auxiliary function to compute quantile loss for informative sources detection}
+\title{Quantile loss for informative sources detection}
 \usage{
 Q_loss(betahat, betaic, X_measure, y_measure, u_target, hic = NULL)
 }
@@ -23,5 +23,5 @@ Q_loss(betahat, betaic, X_measure, y_measure, u_target, hic = NULL)
 A scalar. The quantile loss for given estimator on the given testing samples.
 }
 \description{
-Build the auxiliary function to compute quantile loss for informative sources detection
+Build the auxiliary function to compute quantile loss for informative sources detection. This is different with "cdloss" function, here, we use the MSE loss on the transformed least square problem after smoothening. Not exported to users.
 }

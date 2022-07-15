@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{rq.fusion}
 \alias{rq.fusion}
-\title{Build fusion model between datasets without debias procedure}
+\title{Fusion model}
 \usage{
 rq.fusion(
   x_target,
@@ -33,5 +33,5 @@ rq.fusion(
 A vector. The fusion estimator withou debias procedure based on the given auxiliary sources.
 }
 \description{
-Build fusion model between datasets without debias procedure
+Function for building fusion model between provided target and sources without the final debias procedure.
 }

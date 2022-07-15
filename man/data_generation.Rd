@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{data_generation}
 \alias{data_generation}
-\title{Data generation function to implement the simulation settings in our paper}
+\title{Simulated data generation}
 \usage{
 data_generation(
   p = 150,
@@ -42,5 +42,5 @@ data_generation(
 NULL. But will generate correspoding pairs of (X,y) in global enviroment.
 }
 \description{
-Data generation function to implement the simulation settings in our paper
+Data generation function to implement the simulation settings in our paper.
 }
