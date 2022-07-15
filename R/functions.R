@@ -13,7 +13,7 @@
 #   Check Package:             'Ctrl + Shift + E'
 #   Test Package:              'Ctrl + Shift + T'
 
-#' Quantile loss 
+#' Quantile loss
 #' @description Calculate the quantile loss based on the given samples, coefficient, and quantile level.
 #' @export
 #' @param x Input matrix. The convariates of samples.
@@ -138,7 +138,7 @@ data_generation <- function(p=150,n=200,s=5,d=2,An=5,M=10,eta=20,cov_type='auto'
 }
 
 #' Smoothing kernel
-#' @description Built-in function for smoothing kernel. Not exported to users. 
+#' @description Built-in function for smoothing kernel. Not exported to users.
 #' @param x Numeric variable
 #' @return Numeric scalar
 K <- function(x) {
@@ -184,7 +184,7 @@ tune_param <- function(x,y,u,size=0.05,lower=-2,upper=2,step=0.05,machines=10,se
         train_index <- sample(1:n,size=(1-size)*n,replace=F)
         X_0_train <- x[train_index,]
         X_0_test <- x[-train_index,]
-        y0_train <- y[train_index]
+        y_0_train <- y[train_index]
         y_0_test <- y[-train_index]
         duplicated.columns <- duplicated(t(X_0_train))
         X_0_train <- X_0_train[,!duplicated.columns]
@@ -436,7 +436,7 @@ Q_loss <- function(betahat,betaic,X_measure,y_measure,u_target, hic=NULL){
 }
 
 #' Informative sources detection
-#' @description The main function for informative sources detection among all datasets. This is a general function that can implement both Pseudo and normal informative sources detection, it depends on the input variables explained following.  
+#' @description The main function for informative sources detection among all datasets. This is a general function that can implement both Pseudo and normal informative sources detection, it depends on the input variables explained following.
 #' @export
 #' @param x_target A n*p matrix as the covariate from the target population.
 #' @param y_target A vector with length n as the response from the target population.
@@ -446,7 +446,7 @@ Q_loss <- function(betahat,betaic,X_measure,y_measure,u_target, hic=NULL){
 #' @param u_aux_bd A vector that contains the quantile level for informative populations.
 #' @param epsilon A scalar. Default is NULL. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.
 #' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.
-#' @param psd A boolean variable. Default is true. Whether the procedure is pseudo. 
+#' @param psd A boolean variable. Default is true. Whether the procedure is pseudo.
 #' @param info_num A integar. Default is NULL. The given number of informative sources under pseduo running.
 #' @import quantreg
 #' @import utils

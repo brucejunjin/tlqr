@@ -10,3 +10,5 @@ Encoding: UTF-8
 Imports: MASS, glmnet, ExtDist, foreach, doParallel, quantreg
 LazyData: true
 RoxygenNote: 7.2.0
+Depends: 
+    R (>= 2.10)
