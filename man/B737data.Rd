@@ -5,12 +5,12 @@
 \alias{B737data}
 \title{QAR data from B737}
 \format{
-A data table with 1218 rows and 103 variables:
+A data table with 68986 rows and 103 variables:
 }
 \usage{
 B737data
 }
 \description{
-QAR data from Boeing 737 flights that contains the maximum vertical acceleration during landing as the response and other measurements as covariates. Detailed explanation of feature code are in the supplementary material of the paper.
+QAR data from Boeing 737 flights contains the maximum vertical acceleration during landing as the response and other measurements as covariates. A detailed explanation of the feature codes is in the supplementary material of the paper.
 }
 \keyword{datasets}

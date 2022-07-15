@@ -11,6 +11,6 @@ A data table with 1218 rows and 103 variables:
 A380data
 }
 \description{
-QAR data from Airbus 380 flights that contains the maximum vertical acceleration during landing as the response and other measurements as covariates. Detailed explanation of feature code are in the supplementary material of the paper.
+QAR data from Airbus 320 flights contains the maximum vertical acceleration during landing as the response and other measurements as covariates. A detailed explanation of the feature codes is in the supplementary material of the paper.
 }
 \keyword{datasets}
