@@ -2,14 +2,14 @@
 % Please edit documentation in R/functions.R
 \name{smoothy}
 \alias{smoothy}
-\title{Get the smoothened response}
+\title{Get the smoothed response}
 \usage{
 smoothy(x, y, u, maxit = 100, reltol = 0.05)
 }
 \arguments{
-\item{x}{A n*p matrix as the covariate for response smoothening.}
+\item{x}{A n*p matrix as the covariate for response smoothing.}
 
-\item{y}{A vector with length n as the response that needs to be smoothened.}
+\item{y}{A vector with length n as the response that needs to be smoothed.}
 
 \item{u}{A scalar. The quantile level.}
 
@@ -21,5 +21,5 @@ smoothy(x, y, u, maxit = 100, reltol = 0.05)
 y: A vector as the smoothed response. h: A scalar as the selected bandwidth. converge: The convergence status, 0 is succuessful convergence.
 }
 \description{
-Get the smoothened response (from the quantile model to least square model) variable by iterations.
+Get the smoothed response (from the quantile model to least square model) variable by iterations.
 }

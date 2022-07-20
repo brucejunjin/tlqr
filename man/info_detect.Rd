@@ -34,9 +34,9 @@ info_detect(
 
 \item{psd}{A boolean variable. Default is true. Whether the procedure is pseudo.}
 
-\item{info_num}{A integar. Default is NULL. The given number of informative sources under pseduo running.}
+\item{info_num}{A integer. Default is NULL. The given number of informative sources under pseudo running.}
 
-\item{epsilon}{A scalar. Default is NULL. The strict level for informative sources detectiond, larger the value is, less strict the procedure is.}
+\item{epsilon}{A scalar. Default is NULL. The strict level for informative sources detection, larger the value is, less strict the procedure is.}
 }
 \value{
 A vector of index. The index of the informative sources.

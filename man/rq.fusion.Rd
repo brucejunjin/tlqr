@@ -30,7 +30,7 @@ rq.fusion(
 \item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.}
 }
 \value{
-A vector. The fusion estimator withou debias procedure based on the given auxiliary sources.
+A vector. The fusion estimator without debias procedure based on the given auxiliary sources.
 }
 \description{
 Function for building fusion model between provided target and sources without the final debias procedure.

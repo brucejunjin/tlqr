@@ -39,7 +39,7 @@ data_generation(
 \item{seed}{Input integer. The default is 111.  The random seed.}
 }
 \value{
-NULL. But will generate correspoding pairs of (X,y) in global enviroment.
+NULL. But will generate corresponding pairs of (X,y) in global environment.
 }
 \description{
 Data generation function to implement the simulation settings in our paper.
