@@ -1,5 +1,5 @@
 #' Calculate the quantile loss based on the given samples, coefficient, and the
-#'  quantile level
+#' quantile level
 #' @export
 #' @param x Input matrix. The convariates of samples.
 #' @param y Input vector. The responses of samples.
@@ -42,7 +42,7 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
                             eta = 20, cov_type = 'auto', res_type = 'normal',
                             seed = 111){
   set.seed(seed)
-  ## Construct beta
+  # Construct beta
   beta_0 <- rep(0, p)
   beta_0[1:s] <- 1
   assign('beta_0', beta_0, envir = .GlobalEnv)
@@ -64,7 +64,7 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
       assign(nam, beta_0 + ksi_add, envir = .GlobalEnv)
     }
   }
-  ## Construct covariates:
+  # Construct covariates:
   if (cov_type == 'auto') {
     sigma <- matrix(rep(0, p * p), nrow = p, byrow = T)
     for (i in 1:p) {
@@ -105,7 +105,7 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
   } else{
     print('wrong covariance type!')
   }
-  ## Construct response:
+  # Construct response:
   if (res_type == 'normal'){
     assign("y_0", get(paste0('X_', 0)) %*% get(paste0('beta_', 0)) +
           rnorm(n = floor(n / 0.8) + 1,
@@ -266,7 +266,7 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   nt <- nrow(x_target)
   # Step 1:
-  ## For target
+  # For target
   beta_target_hat <- rq.fit.lasso(x_target, y_target, tau = 0.8)$coefficients
   # CV for h selection if NULL
   if (is.null(h)) {
@@ -278,7 +278,7 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                       h_target), 1, K)) / (nrow(x_target) * h_target)
   y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
     (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
-  ## For source
+  # For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
     cl <- makeCluster(min(detectCores() - 3, ncore))
@@ -399,7 +399,7 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   n <- nrow(x_target)
   # Step 1:
-  ## For target
+  # For target
   beta_target_hat <- rq.fit.lasso(x_target, y_target,
                                   tau = u_target)$coefficients
   if (is.null(h)) {
@@ -411,7 +411,7 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                       h_target), 1, K)) / (nrow(x_target) * h_target)
   y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
     (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
-  ## For source
+  # For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
     cl <- makeCluster(min(detectCores() - 3, ncore))
