@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{K}
 \alias{K}
-\title{Smoothing kernel}
+\title{Build the smoothing kernel for estimation of density}
 \usage{
 K(x)
 }
@@ -13,5 +13,5 @@ K(x)
 Numeric scalar
 }
 \description{
-Built-in function for smoothing kernel. Not exported to users.
+Build the smoothing kernel for estimation of density
 }

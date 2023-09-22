@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{rq.transfer}
 \alias{rq.transfer}
-\title{Oracle Trans-Lasso QR}
+\title{Oracle Trans-Lasso QR with a given informative sources set}
 \usage{
 rq.transfer(
   x_target,
@@ -11,27 +11,47 @@ rq.transfer(
   y_aux_bd,
   u_target,
   u_aux_bd,
-  mode = "real"
+  h = NULL,
+  mode = "real",
+  parallel = FALSE,
+  ncore = 20
 )
 }
 \arguments{
 \item{x_target}{A n*p matrix as the covariate from the target population.}
 
-\item{y_target}{A vector with length n as the response from the target population.}
+\item{y_target}{A vector with length n as the response from the target
+population.}
 
-\item{x_aux_bd}{A list object that each element is a n*p matrix as the covariate from informative sources.}
+\item{x_aux_bd}{A list object that each element is a n*p matrix as the
+covariate from informative sources.}
 
-\item{y_aux_bd}{A list object that each element is a vector with length n as the covariate from informative sources.}
+\item{y_aux_bd}{A list object that each element is a vector with length n
+as the covariate from informative sources.}
 
-\item{u_target}{A scalar in (0,1). The quantile level for model of target population.}
+\item{u_target}{A scalar in (0,1). The quantile level for model of target
+population.}
 
-\item{u_aux_bd}{A vector that contains the quantile level for informative populations.}
+\item{u_aux_bd}{A vector that contains the quantile level for informative
+populations.}
 
-\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.}
+\item{h}{A vector with length (K+1), where K is the number of auxiliary
+datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
+cross validation will be carried out.}
+
+\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is
+allowed. The difference of mode leads to different operations for the
+selection of strength of penalty in fusion-debiase modeling. 'real' mode
+takes longer time.}
+
+\item{parallel}{A logic variable, default is FALSE.}
+
+\item{ncore}{The integer, the number of cores used for parallel computation.}
 }
 \value{
-A vector. The corresponding transfer learning estimator based on the given auxiliary sources.
+A vector. The corresponding transfer learning estimator based on
+the given auxiliary sources.
 }
 \description{
-Implement Oracle Trans-Lasso QR with a given informative sources set.
+Oracle Trans-Lasso QR with a given informative sources set
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{info_detect}
 \alias{info_detect}
-\title{Informative sources detection}
+\title{Main function for informative sources detection among all dataset}
 \usage{
 info_detect(
   x_target,
@@ -11,36 +11,57 @@ info_detect(
   y_aux_bd,
   u_target,
   u_aux_bd,
+  epsilon = 0.01,
+  h = NULL,
   mode = "real",
-  psd = FALSE,
+  parallel = TRUE,
+  ncore = 10,
   info_num = NULL,
-  epsilon = NULL
+  verbose = FALSE
 )
 }
 \arguments{
 \item{x_target}{A n*p matrix as the covariate from the target population.}
 
-\item{y_target}{A vector with length n as the response from the target population.}
+\item{y_target}{A vector with length n as the response from the target
+population.}
 
-\item{x_aux_bd}{A list object that each element is a n*p matrix as the covariate from informative sources.}
+\item{x_aux_bd}{A list object that each element is a n*p matrix as the
+covariate from informative sources.}
 
-\item{y_aux_bd}{A list object that each element is a vector with length n as the covariate from informative sources.}
+\item{y_aux_bd}{A list object that each element is a vector with length n
+as the covariate from informative sources.}
 
-\item{u_target}{A scalar in (0,1). The quantile level for model of target population.}
+\item{u_target}{A scalar in (0,1). The quantile level for model of target
+population.}
 
-\item{u_aux_bd}{A vector that contains the quantile level for informative populations.}
+\item{u_aux_bd}{A vector that contains the quantile level for informative
+populations.}
 
-\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.}
+\item{epsilon}{A scalar. Default is 0.01. The strict level for informative
+sources detectiond, larger the value is, less strict the procedure is.}
 
-\item{psd}{A boolean variable. Default is true. Whether the procedure is pseudo.}
+\item{h}{A vector with length (K+1), where K is the number of auxiliary
+datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
+cross validation will be carried out.}
 
-\item{info_num}{A integer. Default is NULL. The given number of informative sources under pseudo running.}
+\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is
+allowed. The difference of mode leads to different operations for the
+selection of strength of penalty in fusion modeling. 'real' mode
+takes longer time.}
 
-\item{epsilon}{A scalar. Default is NULL. The strict level for informative sources detection, larger the value is, less strict the procedure is.}
+\item{parallel}{A logic variable, default is TRUE}
+
+\item{ncore}{The integer, the number of cores used for parallel computation.}
+
+\item{info_num}{An integar. Default is NULL. The given number of informative
+sources under pseduo running.}
+
+\item{verbose}{A logic variable, default is FALSE.}
 }
 \value{
 A vector of index. The index of the informative sources.
 }
 \description{
-The main function for informative sources detection among all datasets. This is a general function that can implement both Pseudo and normal informative sources detection, it depends on the input variables explained following.
+Main function for informative sources detection among all dataset
 }

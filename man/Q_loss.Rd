@@ -2,7 +2,8 @@
 % Please edit documentation in R/functions.R
 \name{Q_loss}
 \alias{Q_loss}
-\title{Quantile loss for informative sources detection}
+\title{Build the auxiliary function to compute quantile loss for informative
+sources detection}
 \usage{
 Q_loss(betahat, betaic, X_measure, y_measure, u_target, hic = NULL)
 }
@@ -11,17 +12,23 @@ Q_loss(betahat, betaic, X_measure, y_measure, u_target, hic = NULL)
 
 \item{betaic}{Estimator for target only from testing part.}
 
-\item{X_measure}{A n*p matrix for covariate of population that is waiting for the test.}
+\item{X_measure}{A n*p matrix for covariate of population that is waiting
+for the test.}
 
-\item{y_measure}{A vector as the response from the population that is waiting for the test.}
+\item{y_measure}{A vector as the response from the population that is
+waiting for the test.}
 
-\item{u_target}{A scalar in (0,1). The quantile level for informative source detection testing.}
+\item{u_target}{A scalar in (0,1). The quantile level for informative
+source detection testing.}
 
-\item{hic}{A scalar >0. The smoothing bandwidth for calculate the loss.}
+\item{hic}{A scalar >0. The smoothing bandwidth for calculate the loss. If
+not provided, then the cross validation will be carried out.}
 }
 \value{
-A scalar. The quantile loss for given estimator on the given testing samples.
+A scalar. The quantile loss for given estimator on the given
+testing samples.
 }
 \description{
-Build the auxiliary function to compute quantile loss for informative sources detection. This is different with "cdloss" function, here, we use the MSE loss on the transformed least square problem after smoothening. Not exported to users.
+Build the auxiliary function to compute quantile loss for informative
+sources detection
 }

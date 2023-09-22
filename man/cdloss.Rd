@@ -2,7 +2,8 @@
 % Please edit documentation in R/functions.R
 \name{cdloss}
 \alias{cdloss}
-\title{Quantile loss}
+\title{Calculate the quantile loss based on the given samples, coefficient, and the
+ quantile level}
 \usage{
 cdloss(x, y, beta, u)
 }
@@ -19,5 +20,6 @@ cdloss(x, y, beta, u)
 A scalar. The quantile loss based on the given inputs.
 }
 \description{
-Calculate the quantile loss based on the given samples, coefficient, and quantile level.
+Calculate the quantile loss based on the given samples, coefficient, and the
+ quantile level
 }

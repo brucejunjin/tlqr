@@ -1,20 +1,5 @@
-# Hello, world!
-#
-# This is an example function named 'hello'
-# which prints 'Hello, world!'.
-#
-# You can learn more about package authoring with RStudio at:
-#
-#   http://r-pkgs.had.co.nz/
-#
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Ctrl + Shift + B'
-#   Check Package:             'Ctrl + Shift + E'
-#   Test Package:              'Ctrl + Shift + T'
-
-#' Quantile loss
-#' @description Calculate the quantile loss based on the given samples, coefficient, and quantile level.
+#' Calculate the quantile loss based on the given samples, coefficient, and the
+#'  quantile level
 #' @export
 #' @param x Input matrix. The convariates of samples.
 #' @param y Input vector. The responses of samples.
@@ -22,27 +7,40 @@
 #' @param u Input scalar. The quantile level.
 #' @return A scalar. The quantile loss based on the given inputs.
 cdloss <- function(x, y, beta, u) {
-  return(sum((y - x %*% beta) * (u - ifelse(y - x %*% beta <= 0, 1, 0))) / nrow(x))
+  return(sum((y - x %*% beta) * (u - ifelse(y - x %*% beta <= 0, 1, 0))) /
+         nrow(x))
 }
 
-#' Simulated data generation
-#' @description Data generation function to implement the simulation settings in our paper.
+
+#' Data generation function to implement the simulation settings in our paper
 #' @export
-#' @param p Input integer. Default is 150. The dimensionality for the covariate.
-#' @param n Input integer. Default is 200. The sample size for each datasets, including all the target and sources.
+#' @param p Input integer. Default is 150. The dimensionality for the
+#' covariate.
+#' @param n Input integer. Default is 200. The sample size for each datasets,
+#' including all the target and sources.
 #' @param s Input integer. Default is 5. The sparsity level in the simulation.
-#' @param d Input scalar. Default is 2. Control the scale of the Laplace distribution, larger d leads to smaller similarity between the target and informative sets. Details are in the section for simulation.
+#' @param d Input scalar. Default is 2. Control the scale of the Laplace
+#' distribution, larger d leads to smaller similarity between the target and
+#' informative sets. Details are in the section for simulation.
 #' @param An Input integer. Default is 5. The number of informative set.
 #' @param M Input integer. Default is 10. The total number of sources.
-#' @param eta Input scalar. Default is 20. The signal-to-noise ratio for residual.
-#' @param cov_type Input string. Default is 'auto'. Control the covariance matrix of datasets. The value 'auto' leads to a homogeneous design with auto-covariance; the value 'toeplitz' leads to heterogeneous designs with Toeplitz covariance matrix. No other value is permitted.
-#' @param res_type Input string. Default is 'normal'. Control the type of distribution for residual. Only one from 'normal' and 'cauchy' is allowed.
+#' @param eta Input scalar. Default is 20. The signal-to-noise ratio for
+#' residual.
+#' @param cov_type Input string. Default is 'auto'. Control the covariance
+#' matrix of datasets. The value 'auto' leads to a homogeneous design with
+#' auto-covariance; the value 'toeplitz' leads to heterogeneous designs with
+#' Toeplitz covariance matrix. No other value is permitted.
+#' @param res_type Input string. Default is 'normal'. Control the type of
+#' distribution for residual. Only one from 'normal' and 'cauchy' is allowed.
 #' @param seed Input integer. The default is 111.  The random seed.
-#' @import stats
-#' @import MASS
+#' @importFrom stats toeplitz rnorm rcauchy qcauchy qnorm
+#' @importFrom MASS mvrnorm
 #' @importFrom ExtDist rLaplace
-#' @return NULL. But will generate corresponding pairs of (X,y) in global environment.
-data_generation <- function(p=150,n=200,s=5,d=2,An=5,M=10,eta=20,cov_type='auto',res_type='normal',seed=111){
+#' @return NULL. But will generate correspoding pairs of (X,y) in global
+#' enviroment.
+data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
+                            eta = 20, cov_type = 'auto', res_type = 'normal',
+                            seed = 111){
   set.seed(seed)
   ## Construct beta
   beta_0 <- rep(0, p)
@@ -51,23 +49,15 @@ data_generation <- function(p=150,n=200,s=5,d=2,An=5,M=10,eta=20,cov_type='auto'
   A_index <- c(rep(1, An), rep(0, M - An))
   for (i in 1:length(A_index)) {
     if (A_index[i] == 1) {
-      Hk <- sample(seq(from = 1, to = p, by = 1),
-                   size = p / 2,
-                   replace = F)
-      ksi <- rLaplace(n = length(Hk),
-                      mu = 0,
-                      b = 2 * d / p)
+      Hk <- sample(seq(from = 1, to = p, by = 1), size = p / 2, replace = F)
+      ksi <- rLaplace(n = length(Hk), mu = 0, b = 2 * d / p)
       ksi_add <- rep(0, p)
       ksi_add[Hk] <- ksi
       nam <- paste0("beta_", i)
       assign(nam, beta_0 + ksi_add, envir = .GlobalEnv)
     } else{
-      Hk <- sample(seq(from = 1, to = p, by = 1),
-                   size = p / 2,
-                   replace = F)
-      ksi <- rLaplace(n = length(Hk),
-                      mu = 0,
-                      b = 140 / p)
+      Hk <- sample(seq(from = 1, to = p, by = 1), size = p / 2, replace = F)
+      ksi <- rLaplace(n = length(Hk), mu = 0, b = 140 / p)
       ksi_add <- rep(0, p)
       ksi_add[Hk] <- ksi
       nam <- paste0("beta_", i)
@@ -86,9 +76,11 @@ data_generation <- function(p=150,n=200,s=5,d=2,An=5,M=10,eta=20,cov_type='auto'
     for (i in 0:M) {
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, MASS::mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma, tol = 1e-10),envir = .GlobalEnv)
+        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+                            tol = 1e-10),envir = .GlobalEnv)
       } else {
-        assign(nam, MASS::mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),envir = .GlobalEnv)
+        assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
+               envir = .GlobalEnv)
       }
       assign(paste0("sigma_", i), sigma)
     }
@@ -96,15 +88,17 @@ data_generation <- function(p=150,n=200,s=5,d=2,An=5,M=10,eta=20,cov_type='auto'
     for (i in 0:M) {
       if (i != 0) {
         row1 <- c(1, rep(1 / (i + 1), 2 * i - 1), rep(0, p - 2 * i))
-        sigma <- stats::toeplitz(row1)
+        sigma <- toeplitz(row1)
       } else{
         sigma <- diag(rep(1, p))
       }
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, MASS::mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma, tol = 1e-10),envir = .GlobalEnv)
+        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+                            tol = 1e-10),envir = .GlobalEnv)
       } else{
-        assign(nam, MASS::mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),envir = .GlobalEnv)
+        assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
+               envir = .GlobalEnv)
       }
       assign(paste0("sigma_", i), sigma)
     }
@@ -112,33 +106,57 @@ data_generation <- function(p=150,n=200,s=5,d=2,An=5,M=10,eta=20,cov_type='auto'
     print('wrong covariance type!')
   }
   ## Construct response:
-  if (res_type=='normal'){
-    assign("y_0", get(paste0('X_',0)) %*% get(paste0('beta_',0)) +
-             stats::rnorm(n = floor(n/0.8)+1,qnorm(0.2,mean=0,sd= t(get(paste0('beta_',0)))%*% get(paste0('sigma_',0)) %*% get(paste0('beta_',0))/eta),
-                   sd =t(get(paste0('beta_',0)))%*% get(paste0('sigma_',0)) %*% get(paste0('beta_',0))/eta),envir = .GlobalEnv)
+  if (res_type == 'normal'){
+    assign("y_0", get(paste0('X_', 0)) %*% get(paste0('beta_', 0)) +
+          rnorm(n = floor(n / 0.8) + 1,
+                qnorm(0.2, mean = 0, sd = t(get(paste0('beta_', 0))) %*%
+                      get(paste0('sigma_', 0)) %*% get(paste0('beta_', 0)) /
+                      eta),
+                sd = t(get(paste0('beta_', 0))) %*%
+                  get(paste0('sigma_', 0)) %*% get(paste0('beta_', 0)) / eta),
+          envir = .GlobalEnv)
     for (i in 1:M){
       nam <- paste0("y_", i)
-      assign(nam, get(paste0('X_',i)) %*% get(paste0('beta_',i)) +
-               stats::rnorm(n = n,qnorm(0.2,mean=0,sd= t(get(paste0('beta_',i)))%*% get(paste0('sigma_',i)) %*% get(paste0('beta_',i))/eta),
-                     sd =t(get(paste0('beta_',i)))%*% get(paste0('sigma_',i)) %*% get(paste0('beta_',i))/eta),envir = .GlobalEnv)
+      assign(nam, get(paste0('X_', i)) %*% get(paste0('beta_', i)) +
+            rnorm(n = n,
+                  qnorm(0.2, mean = 0, sd = t(get(paste0('beta_', i))) %*%
+                        get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
+                        eta),
+                  sd = t(get(paste0('beta_', i))) %*%
+                    get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
+                    eta),
+            envir = .GlobalEnv)
     }
-  } else if (res_type=='cauchy'){
-    assign("y_0", get(paste0('X_',0)) %*% get(paste0('beta_',0)) +
-             stats::rcauchy(n = n,qcauchy(0.2,location=0,scale=  t(get(paste0('beta_',0)))%*% get(paste0('sigma_',0)) %*% get(paste0('beta_',0))/eta),
-                     scale= t(get(paste0('beta_',0)))%*% get(paste0('sigma_',0)) %*% get(paste0('beta_',0))/eta),envir = .GlobalEnv)
-    for (i in 1:M){
+  } else if (res_type == 'cauchy'){
+    assign("y_0", get(paste0('X_', 0)) %*% get(paste0('beta_', 0)) +
+           rcauchy(n = floor(n / 0.8) + 1,
+                  qcauchy(0.2, location = 0,
+                          scale =  t(get(paste0('beta_', 0))) %*%
+                            get(paste0('sigma_', 0)) %*%
+                            get(paste0('beta_', 0)) / eta),
+                  scale = t(get(paste0('beta_', 0))) %*%
+                    get(paste0('sigma_', 0)) %*% get(paste0('beta_', 0)) /
+                    eta),
+           envir = .GlobalEnv)
+    for (i in 1:M) {
       nam <- paste0("y_", i)
-      assign(nam, get(paste0('X_',i)) %*% get(paste0('beta_',i)) +
-               stats::rcauchy(n = n,qcauchy(0.2,location=0,scale=  t(get(paste0('beta_',i)))%*% get(paste0('sigma_',i)) %*% get(paste0('beta_',i))/eta),
-                       scale= t(get(paste0('beta_',i)))%*% get(paste0('sigma_',i)) %*% get(paste0('beta_',i))/eta),envir = .GlobalEnv)
+      assign(nam, get(paste0('X_', i)) %*% get(paste0('beta_', i)) +
+             rcauchy(n = n,
+                     qcauchy(0.2, location = 0,
+                     scale =  t(get(paste0('beta_', i))) %*%
+                       get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
+                       eta),
+                     scale = t(get(paste0('beta_', i))) %*%
+                       get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
+                       eta),
+             envir = .GlobalEnv)
     }
   } else {
     print('Error on residual setting!')
   }
 }
 
-#' Smoothing kernel
-#' @description Built-in function for smoothing kernel. Not exported to users.
+#' Build the smoothing kernel for estimation of density
 #' @param x Numeric variable
 #' @return Numeric scalar
 K <- function(x) {
@@ -147,384 +165,561 @@ K <- function(x) {
   } else if (x >= 1) {
     return(0)
   } else{
-    return((-315 / 64) * x ^ 6 + (735 / 64) * x ^ 4 - (525 / 64) * x ^ 2 + (105 / 64))
+    return((-315 / 64) * x ^ 6 + (735 / 64) * x ^ 4 - (525 / 64) * x ^ 2 +
+             (105 / 64))
   }
 }
 
-#' Tunning the hyper-parameter for high-dimensional model
-#' @description Build the function for tuning the parameter based on given data. In this function, the given samples will be split into training data and validation data according to the given proportion variable 20 times. Then, for each of the parameters generated by the grid from e^lower to the e^upper with a fixed step length, a high-dimensional model will be trained 20 times, and the function will output the best parameter that has the minimum average loss from 20 times repetition.
+#' Build the function for tunning the parameter based on given data for lasso
+#' problem.
 #' @export
 #' @param x A n*p matrix as the training and validation covariate.
-#' @param y A vector with length n as the response from training and validation.
-#' @param u A scalar. The quantile level for model.
-#' @param lower A scalar. The default is -2, the lower bound for grid search, established by exp(lower).
-#' @param upper A scalar larger than lower. The default is +2, the upper bound for grid search, established by exp(upper).
-#' @param step A scalar. The default is 0.05, the length of step for the grid search.
-#' @param machines An integer. The default is 10, the number of machines for parallel computation.
+#' @param y A vector with length n as the response from training and
+#' validation.
+#' @param nfolds The number of folds for the cross validation.
 #' @param seed An integer. The default is 111. The random seed.
-#' @import doParallel
-#' @import foreach
-#' @import glmnet
-#' @import quantreg
-#' @import parallel
+#' @importFrom glmnet cv.glmnet
 #' @return A scalar. The best lambda value for penalized model.
-tune_param <- function(x,y,u,lower=-2,upper=2,step=0.05,machines=10,seed=111){
+tune_lasso  <- function(x, y, nfolds = 10, seed = 111) {
+  set.seed(seed)
+  cvfit <- cv.glmnet(x = x, y = y, nfolds = nfolds, alpha = 1, intercept = F,
+                     type.measure = 'mse', standardize = F)
+  return(cvfit$lambda.min)
+}
+
+
+#' Select bandwidth h by cross validation
+#' @export
+#' @param x design matrix which is in size of n*p.
+#' @param y response vector.
+#' @param u A scalar for the quantile level.
+#' @param thresh A scalar for the setting the minimum of the bandwidth.
+#' @importFrom quantreg rq.fit.lasso
+#' @importFrom glmnet cv.glmnet glmnet
+hchoose <- function(x, y, u, thresh = 0.05) {
   n <- nrow(x)
-  lambda_seq = exp(seq(lower,upper,by=step))
-  tryCatch({
-    cl <- parallel::makeCluster(machines)
-    doParallel::registerDoParallel(cl)
-    pd_error <- foreach::foreach(i = 1:length(lambda_seq), .combine=rbind,.inorder = FALSE, .packages =c('quantreg')) %dopar% {
-      lam = lambda_seq[i]
-      iter_error = c()
-      set.seed(111)
-      random_index <- sample(1:n,size=n,replace=F)
-      x_random <- x[random_index,]
-      y_random <- y[random_index]
-      unit <- floor(n/5)
-      for (T in 1:5){
-        # train-test-split
-        train_index <- seq(1+(T-1)*unit, T*unit, by=1)
-        X_0_train <- x_random[train_index,]
-        X_0_test <- x_random[-train_index,]
-        y_0_train <- y_random[train_index]
-        y_0_test <- y_random[-train_index]
-        duplicated.columns <- duplicated(t(X_0_train))
-        X_0_train <- X_0_train[,!duplicated.columns]
-        X_0_test <- X_0_test[,!duplicated.columns]
-        beta_hat <- quantreg::rq.fit.lasso(X_0_train,y_0_train,tau=u,lambda = lam)$coefficients
-        iter_error <- c(iter_error,sum((y_0_test- X_0_test %*% beta_hat)*(u- ifelse(y_0_test-X_0_test %*% beta_hat<=0,1,0))))
-      }
-      df_add <- data.frame(lambda=c(lam),performance = c(mean(iter_error)))
-      df_add
-    }
-    parallel::stopCluster(cl)
-  }, error = function(cond){
-    return(tune_param(x,y,u,lower=-2,upper=2,step=0.05,machines=10,seed=seed+1))
+  beta_hat <- quantreg::rq.fit.lasso(x, y, tau = u)$coefficients
+  shat <- sum(abs(beta_hat) > (max(abs(beta_hat)) * 1e-10))
+  clist <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10)
+  hlist <- sapply(clist, function(x) {
+    max(0.05, sqrt(shat * log(n) / n) + x * shat ^ (3 / 2) * log(n) / n)
   })
-  return(pd_error[which.min(pd_error$performance),]$lambda)
+  qlist <- sapply(hlist, function(h) {
+    f_hat <- sum(apply(((y - x %*% beta_hat) / h), 1, K)) / (n * h)
+    if (f_hat != 0) {
+      y_tild <- x %*% beta_hat - f_hat ^ -1 * (ifelse(y - x %*% beta_hat <= 0,
+                                                      1, 0) - u)
+      cvfit <- cv.glmnet(x = x, y = y_tild, alpha = 1, intercept = F,
+                         type.measure = 'mse', standardize = F)
+      b_hat <- glmnet(x, y_tild, lambda = cvfit$lambda.min, intercept = F,
+                      standardize = F)$beta
+      return(cdloss(x = x, y = y, beta = b_hat, u = u))
+    } else{
+      return(1e8)
+    }
+  })
+  h <- max(thresh, sqrt(shat * log(n) / n) + clist[which.min(qlist)] * shat ^
+           (3 / 2) * log(n) / n)
+  return(h)
 }
 
 
-#' Get the smoothed response
-#' @description Get the smoothed response (from the quantile model to least square model) variable by iterations.
-#' @export
-#' @param x A n*p matrix as the covariate for response smoothing.
-#' @param y A vector with length n as the response that needs to be smoothed.
-#' @param u A scalar. The quantile level.
-#' @param maxit A integer. The maximum iteration number.
-#' @param reltol A scalar. Default is 1e-2. The relative tolerance for the stopping criterion.
-#' @import quantreg
-#' @import glmnet
-#' @return y: A vector as the smoothed response. h: A scalar as the selected bandwidth. converge: The convergence status, 0 is succuessful convergence.
-smoothy <- function(x,y,u,maxit=100,reltol=5e-2){
-  beta_old <- quantreg::rq.fit.lasso(x,y,u)$coefficients
-  converge <- 0
-  for (g in 1:maxit){
-    s0 <- sum(abs(beta_old)>=(max(beta_old)/5))
-    h_target <- sqrt(s0*log(nrow(x))/nrow(x))+(s0^((2*(g-1)+1)/2))*(log(nrow(x))/nrow(x))^(g/2)
-    f_target_hat <- 0
-    while (f_target_hat <=0){
-      f_target_hat <- sum(apply(((y - x %*% beta_old) / h_target),1,K))/(nrow(x)*h_target)
-      h_target <- h_target * 1.05
-    }
-    y_tild <- x %*% beta_old - f_target_hat^-1 *(ifelse(y-x %*% beta_old<=0,1,0)-u)
-    fit <- glmnet::cv.glmnet(x=x,y = y_tild,alpha=1)
-    beta_new <- as.vector(coef(fit, s = "lambda.min"))[2:length(coef(fit, s = "lambda.min"))]
-    if (sum(abs(beta_new-beta_old))>reltol*sum(abs(beta_old))){
-      beta_old <- beta_new
-    } else {
-      if (f_target_hat^-1 >= 1e5){
-        converge <- 1
-      }
-      return(list(y=y_tild,h=h_target,converge=converge))
-    }
-  }
-  if (f_target_hat^-1 >= 1e5){
-    converge <- 1
-  }
-  return(list(y=y_tild,h=h_target,converge=converge))
-}
 
-#' Oracle Trans-Lasso QR
-#' @description Implement Oracle Trans-Lasso QR with a given informative sources set.
+#' Oracle Trans-Lasso QR with a given informative sources set
 #' @export
 #' @param x_target A n*p matrix as the covariate from the target population.
-#' @param y_target A vector with length n as the response from the target population.
-#' @param x_aux_bd A list object that each element is a n*p matrix as the covariate from informative sources.
-#' @param y_aux_bd A list object that each element is a vector with length n as the covariate from informative sources.
-#' @param u_target A scalar in (0,1). The quantile level for model of target population.
-#' @param u_aux_bd A vector that contains the quantile level for informative populations.
-#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.
-#' @import quantreg
-#' @import glmnet
-#' @return A vector. The corresponding transfer learning estimator based on the given auxiliary sources.
-rq.transfer <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode='real'){
+#' @param y_target A vector with length n as the response from the target
+#' population.
+#' @param x_aux_bd A list object that each element is a n*p matrix as the
+#' covariate from informative sources.
+#' @param y_aux_bd A list object that each element is a vector with length n
+#' as the covariate from informative sources.
+#' @param u_target A scalar in (0,1). The quantile level for model of target
+#' population.
+#' @param u_aux_bd A vector that contains the quantile level for informative
+#' populations.
+#' @param h A vector with length (K+1), where K is the number of auxiliary
+#' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
+#' cross validation will be carried out.
+#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
+#' allowed. The difference of mode leads to different operations for the
+#' selection of strength of penalty in fusion-debiase modeling. 'real' mode
+#' takes longer time.
+#' @param parallel A logic variable, default is FALSE.
+#' @param ncore The integer, the number of cores used for parallel computation.
+#' @importFrom quantreg rq.fit.lasso
+#' @importFrom glmnet glmnet
+#' @importFrom parallel makeCluster detectCores stopCluster
+#' @importFrom doSNOW registerDoSNOW
+#' @importFrom foreach foreach `%dopar%`
+#' @importFrom utils setTxtProgressBar txtProgressBar
+#' @return A vector. The corresponding transfer learning estimator based on
+#' the given auxiliary sources.
+rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
+                        u_aux_bd, h = NULL, mode = 'real', parallel = FALSE,
+                        ncore = 20){
+  for (k in 1:length(x_aux_bd)) {
+    if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
+      print("Two numbers of features don't match!")
+      break
+    }
+  }
+  nt <- nrow(x_target)
+  # Step 1:
+  ## For target
+  beta_target_hat <- rq.fit.lasso(x_target, y_target, tau = 0.8)$coefficients
+  # CV for h selection if NULL
+  if (is.null(h)) {
+    h_target <- hchoose(x_target, y_target, u_target)
+  } else{
+    h_target <- h[1]
+  }
+  f_target_hat <- sum(apply(((y_target - x_target %*% beta_target_hat) /
+                      h_target), 1, K)) / (nrow(x_target) * h_target)
+  y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
+    (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
+  ## For source
+  if (parallel == TRUE){
+    i <- NULL # pass R-CMD check
+    cl <- makeCluster(min(detectCores() - 3, ncore))
+    registerDoSNOW(cl)
+    pb <- txtProgressBar(max = length(x_aux_bd), style = 3)
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+    y_aux_tild_bd <- foreach(i = 1:length(x_aux_bd),.options.snow = opts,
+                             .combine = 'c', .multicombine=T,
+                             .packages = c('quantreg'),
+                             .inorder = TRUE) %dopar% {
+      x_source <- x_aux_bd[[i]]
+      y_source <- y_aux_bd[[i]]
+      u_source <- u_aux_bd[i]
+      ns <- nrow(x_source)
+      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+                                   tau = 0.8)$coefficients
+      if (is.null(h)) {
+        h_source <- hchoose(x_source, y_source, u_source)
+      } else{
+        h_source <- h[k + 1]
+      }
+      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
+                       h_source), 1, K)) / (ns * h_source)
+      list(x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
+          (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) -
+          u_source))
+    }
+    close(pb)
+    stopCluster(cl)
+  } else {
+    y_aux_tild_bd <- list()
+    for (k in 1:length(x_aux_bd)){
+      x_source <- x_aux_bd[[k]]
+      y_source <- y_aux_bd[[k]]
+      u_source <- u_aux_bd[k]
+      ns <- nrow(x_source)
+      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+                                   tau = 0.8)$coefficients
+      if (is.null(h)) {
+        h_source <- hchoose(x_source, y_source, u_source)
+      } else{
+        h_source <- h[k + 1]
+      }
+      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
+                                h_source), 1, K)) / (ns * h_source)
+      y_aux_tild_bd[[k]] <- x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
+        (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source)
+    }
+  }
+  # Step 2:
+  x_comb <- x_target
   for (k in 1:length(x_aux_bd)){
-    if (ncol(x_target)!=ncol(x_aux_bd[[k]])){
+    x_comb <- rbind(x_comb, x_aux_bd[[k]])
+  }
+  y_comb <- y_target_tild
+  for (k in 1:length(x_aux_bd)){
+    y_comb <- c(y_comb, y_aux_tild_bd[[k]])
+  }
+  if (mode == 'simulation'){
+    lambda_2 <- sqrt(2 * log(nrow(x_target)) / nrow(x_comb))
+  } else{
+    lambda_2 <- tune_lasso(x_comb, y_comb, nfolds = 10)
+  }
+  w_hat <- glmnet(x_comb, y_comb, lambda = lambda_2, intercept = F,
+                  standardize = F)$beta
+  # Step 3:
+  if (mode == 'simulation'){
+    lambda_3 <- sqrt(2 * log(nrow(x_target)) / nrow(x_target))
+  } else {
+    lambda_3 <- tune_lasso(x_target, y_target_tild - (x_target %*% w_hat),
+                           nfolds = 10)
+  }
+  delta_hat <- glmnet(x_target, y_target_tild - (x_target %*% w_hat),
+                      lambda = lambda_3, intercept = F, standardize = F)$beta
+  return(w_hat + delta_hat)
+}
+
+
+#' Build fusion model between datasets without debias procedure
+#' @export
+#' @param x_target A n*p matrix as the covariate from the target population.
+#' @param y_target A vector with length n as the response from the target
+#' population.
+#' @param x_aux_bd A list object that each element is a n*p matrix as the
+#' covariate from informative sources.
+#' @param y_aux_bd A list object that each element is a vector with length n
+#' as the covariate from informative sources.
+#' @param u_target A scalar in (0,1). The quantile level for model of target
+#' population.
+#' @param u_aux_bd A vector that contains the quantile level for informative
+#' populations.
+#' @param h A vector with length (K+1), where K is the number of auxiliary
+#' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
+#' cross validation will be carried out.
+#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
+#' allowed. The difference of mode leads to different operations for the
+#' selection of strength of penalty in fusion modeling. 'real' mode takes
+#' longer time.
+#' @param parallel A logic variable, default is FALSE.
+#' @param ncore The integer, the number of cores used for parallel computation.
+#' @importFrom quantreg rq.fit.lasso
+#' @importFrom glmnet glmnet
+#' @importFrom parallel makeCluster detectCores stopCluster
+#' @importFrom doSNOW registerDoSNOW
+#' @importFrom foreach foreach `%dopar%`
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @return A vector. The fusion estimator withou debias procedure based on the
+#' given auxiliary sources.
+rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
+                      u_aux_bd, h = NULL, mode='real', parallel = FALSE,
+                      ncore = 20) {
+  for (k in 1:length(x_aux_bd)) {
+    if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
       print("Two numbers of features don't match!")
       break
     }
   }
   n <- nrow(x_target)
-  if (mode=='simulation'){
-    lambda_1 <- tune_param(x_target,y_target,u_target)
-    # Step 1:
-    ## For target
-    beta_target_hat <- quantreg::rq.fit.lasso(x_target,y_target,u_target,lambda_1)$coefficients
-    h_target <- sqrt(6*log(nrow(x_target))/nrow(x_target))+sqrt(6)^-1*(6^2*log(nrow(x_target))/nrow(x_target))^0.5
-    f_target_hat <- sum(apply((y_target - x_target %*% beta_target_hat / h_target),1,K))/(nrow(x_target)*h_target)
-    y_target_tild <- x_target %*% beta_target_hat - f_target_hat^-1 *(ifelse(y_target-x_target %*% beta_target_hat<=0,1,0)-u_target)
-    ## For source
-    y_aux_tild_bd <- list()
-    for (k in 1:length(x_aux_bd)){
-      beta_aux_hat <-  quantreg::rq.fit.lasso(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k],lambda_1)$coefficients
-      h_source <- sqrt(6*log(nrow(x_aux_bd[[k]]))/nrow(x_aux_bd[[k]]))+sqrt(6)^-1*(6^2*log(nrow(x_aux_bd[[k]]))/nrow(x_aux_bd[[k]]))^0.5
-      f_aux_hat <- sum(apply((y_aux_bd[[k]] - x_aux_bd[[k]] %*% beta_aux_hat / h_source),1,K))/(nrow(x_aux_bd[[k]])*h_source)
-      y_aux_tild_bd[[k]] <- x_aux_bd[[k]] %*% beta_aux_hat - f_aux_hat^-1 *(ifelse(y_aux_bd[[k]]-x_aux_bd[[k]] %*% beta_aux_hat<=0,1,0)-u_aux_bd[k])
-    }
-    # Step 2:
-    x_comb <- x_target
-    for (k in 1:length(x_aux_bd)){
-      x_comb <- rbind(x_comb,x_aux_bd[[k]])
-    }
-    y_comb <- y_target_tild
-    for (k in 1:length(x_aux_bd)){
-      y_comb <- c(y_comb,y_aux_tild_bd[[k]])
-    }
-    lambda_2 <- sqrt(2*log(nrow(x_target))/nrow(x_comb))
-    w_hat <- glmnet::glmnet(x_comb,y_comb,lambda=lambda_2)$beta
-    # Step 2:
-    lambda_3 <- sqrt(2*log(nrow(x_target))/nrow(x_target))
-    delta_hat <- glmnet::glmnet(x_target,y_target_tild-(x_target %*% w_hat),lambda=lambda_3)$beta
-    return(w_hat+delta_hat)
+  # Step 1:
+  ## For target
+  beta_target_hat <- rq.fit.lasso(x_target, y_target,
+                                  tau = u_target)$coefficients
+  if (is.null(h)) {
+    h_target <- hchoose(x_target, y_target, u_target)
+  } else{
+    h_target <- h[1]
   }
-  if (mode=='real'){
-    # Step 1:
-    ## For target
-    smoothfit0 <- smoothy(x_target,y_target,u_target)
-    y_target_tild <- smoothfit0$y
-    conv <- smoothfit0$converge
-    if (conv!=0){
-      print('We encourage a larger sample size of the target \nto facilate the sparsity condition required.')
-    }
-    ## For source
-    y_aux_tild_bd = list()
-    for (k in 1:length(x_aux_bd)){
-      smoothfit1 <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])
-      y_aux_tild_bd[[k]] <- smoothfit1$y
-      conv <- smoothfit1$converge
-      if (conv!=0){
-        print(paste0(paste0('We encourage a larger sample size of the number',k),' source \nto facilate the sparsity condition required.'))
+  f_target_hat <- sum(apply(((y_target - x_target %*% beta_target_hat) /
+                      h_target), 1, K)) / (nrow(x_target) * h_target)
+  y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
+    (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
+  ## For source
+  if (parallel == TRUE){
+    i <- NULL # pass R-CMD check
+    cl <- makeCluster(min(detectCores() - 3, ncore))
+    registerDoSNOW(cl)
+    pb <- txtProgressBar(max = length(x_aux_bd), style = 3)
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+    y_aux_tild_bd <- foreach(i = 1:length(x_aux_bd),.options.snow = opts,
+                             .combine = 'c', .multicombine=T,
+                             .packages = c('quantreg'),
+                             .inorder = TRUE) %dopar% {
+      x_source <- x_aux_bd[[i]]
+      y_source <- y_aux_bd[[i]]
+      u_source <- u_aux_bd[i]
+      ns <- nrow(x_source)
+      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+                                   tau = 0.8)$coefficients
+      if (is.null(h)) {
+        h_source <- hchoose(x_source, y_source, u_source)
+      } else{
+        h_source <- h[k + 1]
       }
+      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
+                       h_source), 1, K)) / (ns * h_source)
+      list(x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
+          (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source))
     }
-    # Step 2:
-    x_comb <- x_target
-    for (k in 1:length(x_aux_bd)){
-      x_comb <- rbind(x_comb,x_aux_bd[[k]])
+    close(pb)
+    stopCluster(cl)
+  } else {
+    y_aux_tild_bd <- list()
+    for (k in 1:length(x_aux_bd)) {
+      x_source <- x_aux_bd[[k]]
+      y_source <- y_aux_bd[[k]]
+      u_source <- u_aux_bd[k]
+      ns <- nrow(x_source)
+      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+                                   tau = u_source)$coefficients
+      if (is.null(h)) {
+        h_source <- hchoose(x_source, y_source, u_source)
+      } else{
+        h_source <- h[k + 1]
+      }
+      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
+                       h_source), 1, K)) / (ns * h_source)
+      y_aux_tild_bd[[k]] <- x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
+        (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source)
     }
-    y_comb <- y_target_tild
-    for (k in 1:length(x_aux_bd)){
-      y_comb <- c(y_comb,y_aux_tild_bd[[k]])
-    }
-    fit <- glmnet::cv.glmnet(x=x_comb,y = y_comb,alpha=1)
-    w_hat <- as.vector(coef(fit, s = "lambda.min"))[2:length(coef(fit, s = "lambda.min"))]
-    # Step 2:
-    fit <- glmnet::cv.glmnet(x=x_target,y = y_target_tild-(x_target %*% w_hat),alpha=1)
-    delta_hat <- as.vector(coef(fit, s = "lambda.min"))[2:length(coef(fit, s = "lambda.min"))]
-    return(w_hat+delta_hat)
   }
+  # Step 2:
+  x_comb <- x_target
+  for (k in 1:length(x_aux_bd)) {
+    x_comb <- rbind(x_comb, x_aux_bd[[k]])
+  }
+  y_comb <- y_target_tild
+  for (k in 1:length(x_aux_bd)) {
+    y_comb <- c(y_comb, y_aux_tild_bd[[k]])
+  }
+  if (mode == 'simulation') {
+    lambda_2 <- sqrt(2 * log(nrow(x_target)) / nrow(x_comb))
+  } else{
+    lambda_2 <- tune_lasso(x_comb, y_comb, nfolds = 10)
+  }
+  w_hat <- glmnet(x_comb, y_comb, lambda = lambda_2, intercept = F,
+                  standardize = F)$beta
+  return(w_hat)
 }
 
-#' Fusion model
-#' @description Function for building fusion model between provided target and sources without the final debias procedure.
-#' @export
-#' @param x_target A n*p matrix as the covariate from the target population.
-#' @param y_target A vector with length n as the response from the target population.
-#' @param x_aux_bd A list object that each element is a n*p matrix as the covariate from informative sources.
-#' @param y_aux_bd A list object that each element is a vector with length n as the covariate from informative sources.
-#' @param u_target A scalar in (0,1). The quantile level for model of target population.
-#' @param u_aux_bd A vector that contains the quantile level for informative populations.
-#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.
-#' @import quantreg
-#' @import glmnet
-#' @return A vector. The fusion estimator without debias procedure based on the given auxiliary sources.
-rq.fusion <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode='real'){
-  for (k in 1:length(x_aux_bd)){
-    if (ncol(x_target)!=ncol(x_aux_bd[[k]])){
-      print("Two numbers of features don't match!")
-      break
-    }
-  }
-  n <- nrow(x_target)
-  if (mode=='simulation'){
-    lambda_1 <- tune_param(x_target,y_target,u_target)
-    # Step 1:
-    ## For target
-    beta_target_hat <- quantreg::rq.fit.lasso(x_target,y_target,u_target,lambda_1)$coefficients
-    h_target <- sqrt(6*log(nrow(x_target))/nrow(x_target))+sqrt(6)^-1*(6^2*log(nrow(x_target))/nrow(x_target))^0.5
-    f_target_hat <- sum(apply((y_target - x_target %*% beta_target_hat / h_target),1,K))/(nrow(x_target)*h_target)
-    y_target_tild <- x_target %*% beta_target_hat - f_target_hat^-1 *(ifelse(y_target-x_target %*% beta_target_hat<=0,1,0)-u_target)
-    ## For source
-    y_aux_tild_bd <- list()
-    for (k in 1:length(x_aux_bd)){
-      beta_aux_hat <-  quantreg::rq.fit.lasso(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k],lambda_1)$coefficients
-      h_source <- sqrt(6*log(nrow(x_aux_bd[[k]]))/nrow(x_aux_bd[[k]]))+sqrt(6)^-1*(6^2*log(nrow(x_aux_bd[[k]]))/nrow(x_aux_bd[[k]]))^0.5
-      f_aux_hat <- sum(apply((y_aux_bd[[k]] - x_aux_bd[[k]] %*% beta_aux_hat / h_source),1,K))/(nrow(x_aux_bd[[k]])*h_source)
-      y_aux_tild_bd[[k]] <- x_aux_bd[[k]] %*% beta_aux_hat - f_aux_hat^-1 *(ifelse(y_aux_bd[[k]]-x_aux_bd[[k]] %*% beta_aux_hat<=0,1,0)-u_aux_bd[k])
-    }
-    # Step 2:
-    x_comb <- x_target
-    for (k in 1:length(x_aux_bd)){
-      x_comb <- rbind(x_comb,x_aux_bd[[k]])
-    }
-    y_comb <- y_target_tild
-    for (k in 1:length(x_aux_bd)){
-      y_comb <- c(y_comb,y_aux_tild_bd[[k]])
-    }
-    lambda_2 <- sqrt(2*log(nrow(x_target))/nrow(x_comb))
-    w_hat <- glmnet::glmnet(x_comb,y_comb,lambda=lambda_2)$beta
-    return(w_hat)
-  }
-  if (mode=='real'){
-    # Step 1:
-    ## For target
-    smoothfit0 <- smoothy(x_target,y_target,u_target)
-    y_target_tild <- smoothfit0$y
-    conv <- smoothfit0$converge
-    if (conv!=0){
-      print('We encourage a larger sample size of the target \nto facilate the sparsity condition required.')
-    }
-    ## For source
-    y_aux_tild_bd = list()
-    for (k in 1:length(x_aux_bd)){
-      smoothfit1 <- smoothy(x_aux_bd[[k]],y_aux_bd[[k]],u_aux_bd[k])
-      y_aux_tild_bd[[k]] <- smoothfit1$y
-      conv <- smoothfit1$converge
-      if (conv!=0){
-        print(paste0(paste0('We encourage a larger sample size of the number',k),' source \nto facilate the sparsity condition required.'))
-      }
-    }
-    # Step 2:
-    x_comb <- x_target
-    for (k in 1:length(x_aux_bd)){
-      x_comb <- rbind(x_comb,x_aux_bd[[k]])
-    }
-    y_comb <- y_target_tild
-    for (k in 1:length(x_aux_bd)){
-      y_comb <- c(y_comb,y_aux_tild_bd[[k]])
-    }
-    fit <- glmnet::cv.glmnet(x=x_comb,y = y_comb,alpha=1)
-    w_hat <- as.vector(coef(fit, s = "lambda.min"))[2:length(coef(fit, s = "lambda.min"))]
-    return(w_hat)
-  }
-}
-
-#' Quantile loss for informative sources detection
-#' @description Build the auxiliary function to compute quantile loss for informative sources detection. This is different with "cdloss" function, here, we use the MSE loss on the transformed least square problem after smoothening. Not exported to users.
+#' Build the auxiliary function to compute quantile loss for informative
+#' sources detection
 #' @param betahat Estimator for target only from training part.
 #' @param betaic Estimator for target only from testing part.
-#' @param X_measure A n*p matrix for covariate of population that is waiting for the test.
-#' @param y_measure A vector as the response from the population that is waiting for the test.
-#' @param u_target A scalar in (0,1). The quantile level for informative source detection testing.
-#' @param hic A scalar >0. The smoothing bandwidth for calculate the loss.
-#' @return A scalar. The quantile loss for given estimator on the given testing samples.
-Q_loss <- function(betahat,betaic,X_measure,y_measure,u_target, hic=NULL){
-  if (is.null(hic)){
-    hic = smoothy(X_measure,y_measure,u_target)$h
+#' @param X_measure A n*p matrix for covariate of population that is waiting
+#' for the test.
+#' @param y_measure A vector as the response from the population that is
+#' waiting for the test.
+#' @param u_target A scalar in (0,1). The quantile level for informative
+#' source detection testing.
+#' @param hic A scalar >0. The smoothing bandwidth for calculate the loss. If
+#' not provided, then the cross validation will be carried out.
+#' @return A scalar. The quantile loss for given estimator on the given
+#' testing samples.
+Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
+                   hic = NULL) {
+  if (is.null(hic)) {
+    hic <- hchoose(X_measure, y_measure, u_target)
   }
-  f_hat <- sum(apply((y_measure - X_measure %*% betaic / hic),1,K))/(round(nrow(X_measure))*hic)
-  y_measure_tilde <- X_measure %*% betaic - f_hat^(-1)*(ifelse(y_measure-X_measure %*% betaic<=0,1,0)-u_target)
-  return(mean((y_measure_tilde-X_measure %*% betahat)^2))
+  f_hat <- sum(apply((y_measure - X_measure %*% betaic / hic), 1, K)) /
+    (round(nrow(X_measure)) * hic)
+  y_measure_tilde <- X_measure %*% betaic - f_hat ^ (-1) *
+    (ifelse(y_measure - X_measure %*% betaic <= 0, 1, 0) - u_target)
+  return(mean((y_measure_tilde - X_measure %*% betahat) ^ 2))
 }
 
-#' Informative sources detection
-#' @description The main function for informative sources detection among all datasets. This is a general function that can implement both Pseudo and normal informative sources detection, it depends on the input variables explained following.
+#' Main function for informative sources detection among all dataset
 #' @export
 #' @param x_target A n*p matrix as the covariate from the target population.
-#' @param y_target A vector with length n as the response from the target population.
-#' @param x_aux_bd A list object that each element is a n*p matrix as the covariate from informative sources.
-#' @param y_aux_bd A list object that each element is a vector with length n as the covariate from informative sources.
-#' @param u_target A scalar in (0,1). The quantile level for model of target population.
-#' @param u_aux_bd A vector that contains the quantile level for informative populations.
-#' @param epsilon A scalar. Default is NULL. The strict level for informative sources detection, larger the value is, less strict the procedure is.
-#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is allowed. The difference of mode leads to different operations for the selection of strength of penalty in single-source modeling. 'real' mode takes longer time.
-#' @param psd A boolean variable. Default is true. Whether the procedure is pseudo.
-#' @param info_num A integer. Default is NULL. The given number of informative sources under pseudo running.
-#' @import quantreg
-#' @import utils
+#' @param y_target A vector with length n as the response from the target
+#' population.
+#' @param x_aux_bd A list object that each element is a n*p matrix as the
+#' covariate from informative sources.
+#' @param y_aux_bd A list object that each element is a vector with length n
+#' as the covariate from informative sources.
+#' @param u_target A scalar in (0,1). The quantile level for model of target
+#' population.
+#' @param u_aux_bd A vector that contains the quantile level for informative
+#' populations.
+#' @param epsilon A scalar. Default is 0.01. The strict level for informative
+#' sources detectiond, larger the value is, less strict the procedure is.
+#' @param h A vector with length (K+1), where K is the number of auxiliary
+#' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
+#' cross validation will be carried out.
+#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
+#' allowed. The difference of mode leads to different operations for the
+#' selection of strength of penalty in fusion modeling. 'real' mode
+#' takes longer time.
+#' @param parallel A logic variable, default is TRUE
+#' @param ncore The integer, the number of cores used for parallel computation.
+#' @param info_num An integar. Default is NULL. The given number of informative
+#' sources under pseduo running.
+#' @param verbose A logic variable, default is FALSE.
+#' @importFrom quantreg rq.fit.lasso
+#' @importFrom parallel makeCluster stopCluster detectCores
+#' @importFrom foreach foreach `%dopar%`
+#' @importFrom doSNOW registerDoSNOW
+#' @importFrom utils head setTxtProgressBar txtProgressBar
 #' @return A vector of index. The index of the informative sources.
-info_detect <- function(x_target,y_target,x_aux_bd,y_aux_bd,u_target,u_aux_bd,mode='real',psd=FALSE,info_num=NULL,epsilon=NULL){
-  if (psd==TRUE){
-    if (is.null(info_num)){
-      print('The argument info_num should be given!')
-      return()
-    }
-  } else{
-    if (is.null(epsilon)){
-      print('The argument epsilon should be given!')
-      return()
-    }
-  }
-  if (length(x_aux_bd)!=length(y_aux_bd)){
+info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
+                        u_aux_bd, epsilon = 0.01, h = NULL, mode = 'real',
+                        parallel = TRUE, ncore = 10, info_num = NULL,
+                        verbose = FALSE){
+  if (length(x_aux_bd) != length(y_aux_bd)) {
     print('the # of datasets for x and y are not agreed!')
   } else {
+    M <- length(x_aux_bd)
     total_index <- 1:length(x_aux_bd)
     # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
     target_index <- 1:nrow(x_target)
-    X0_index <- sample(target_index,size = round(nrow(x_target)/2),replace=F)
+    X0_index <- sample(target_index, size = round(nrow(x_target) / 2),
+                       replace = F)
     X0_cut1 <- x_target[X0_index,]
     X0_cut2 <- x_target[-X0_index,]
     y0_cut1 <- y_target[X0_index]
     y0_cut2 <- y_target[-X0_index]
-    if (mode=='simulation'){
-      # Step 1.2: train sparse quantile regression for I for X0, y0:
-      lambda_0 <- tune_param(X0_cut1,y0_cut1,u=u_target)
-      beta_0_hat <- quantreg::rq.fit.lasso(X0_cut1,y0_cut1,tau=u_target,lambda=lambda_0)$coefficients
-      # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th source:
-      for (k in 1:length(x_aux_bd)){
-        assign(paste0(paste0('beta_',k),'_hat'), rq.fusion(X0_cut1,y0_cut1,list(get(paste0('X_',k))),list(get(paste0('y_',k))),u_target,c(u_aux_bd[k]),mode=mode))
-      }
-      # Step 2: Calculate the loss based on the loss function:
-      beta_0_hatic <- quantreg::rq.fit.lasso(X0_cut2,y0_cut2,tau=u_target,lambda=lambda_0)$coefficients
-      for (k in c(0,(1:length(x_aux_bd)))){
-        assign(paste0('Q',k), Q_loss(get(paste0(paste0('beta_',k),'_hat')),beta_0_hatic,X0_cut2,y0_cut2,u_target,hic=sqrt(6*log(round(nrow(X0_cut2)))/round(nrow(X0_cut2)))+sqrt(6)^-1*(6^2*log(round(nrow(X0_cut2)))/round(nrow(X0_cut2)))^0.5))
-      }
-    } else {
-      # Step 1.2: train sparse quantile regression for I for X0, y0:
-      beta_0_hat <- quantreg::rq.fit.lasso(X0_cut1,y0_cut1,tau=u_target)$coefficients
-      # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th source:
-      for (k in 1:length(x_aux_bd)){
-        assign(paste0(paste0('beta_',k),'_hat'), rq.fusion(X0_cut1,y0_cut1,list(get(paste0('X_',k))),list(get(paste0('y_',k))),u_target,c(u_aux_bd[k]),mode=mode))
-      }
-      # Step 2: Calculate the loss based on the loss function:
-      beta_0_hatic <- quantreg::rq.fit.lasso(X0_cut2,y0_cut2,tau=u_target)$coefficients
-      for (k in c(0,(1:length(x_aux_bd)))){
-        assign(paste0('Q',k), Q_loss(get(paste0(paste0('beta_',k),'_hat')),beta_0_hatic,X0_cut2,y0_cut2,u_target))
-      }
-    }
-    # Step 3: Get informative sets:
-    if (psd==FALSE){
-      inform_index <- c()
-      print(get(paste0('Q',0)))
-      for (k in 1:length(x_aux_bd)){
-        print(get(paste0('Q',k)))
-        if (get(paste0('Q',k))<=(1+epsilon)*get(paste0('Q',0))){
-          inform_index <- c(inform_index,k)
+    # CV1:
+    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau=0.8)$coefficients
+    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    # source:
+    if (parallel == F){
+      for (k in 1:length(x_aux_bd)) {
+        if (is.null(h)) {
+          assign(paste0(paste0('beta_', k), '_hat'),
+                 rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[k]]),
+                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
+                           mode = mode))
         } else{
-          next
+          assign(paste0(paste0('beta_', k), '_hat'),
+                 rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[k]]),
+                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
+                           h = c(h[1], h[k + 1]), mode = mode))
         }
       }
-      return(inform_index)
-    }
-    if (psd==TRUE){
-      print(get(paste0('Q',0)))
-      Q_K_vec <- c()
-      for (k in 1:length(x_aux_bd)){
-        print(get(paste0('Q',k)))
-        Q_K_vec <- c(Q_K_vec,get(paste0('Q',k)))
+    } else{
+      i <- NULL # pass R-CMD check
+      cl <- makeCluster(min(detectCores() - 3, ncore))
+      registerDoSNOW(cl)
+      pb <- txtProgressBar(max = M, style = 3)
+      progress <- function(n) setTxtProgressBar(pb, n)
+      opts <- list(progress = progress)
+      betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
+                             .packages = c('quantreg', 'glmnet'),
+                             .inorder = T) %dopar% {
+        if (is.null(h)) {
+          rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
+                    u_target, c(u_aux_bd[i]), mode = mode)
+        } else{
+          rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
+                    u_target, c(u_aux_bd[i]), h = c(h[1], h[i + 1]),
+                    mode = mode)
+        }
       }
-      return(match(utils::head(sort(Q_K_vec,decreasing = F),info_num),Q_K_vec))
+      close(pb)
+      stopCluster(cl)
+      for (k in 1:length(x_aux_bd)) {
+        assign(paste0(paste0('beta_', k), '_hat'), betasources[, k])
+      }
     }
+    # Step 2: Calculate the loss based on the loss function:
+    beta_0_hatic <- rq.fit.lasso(X0_cut2, y0_cut2, tau = 0.8)$coefficients
+    #hic <- hchoose(X0_cut2, y0_cut2, u_target)
+    hic <- h[1]
+    for (k in c(0, (1:length(x_aux_bd)))) {
+      assign(paste0('Q', k),
+             Q_loss(get(paste0(paste0('beta_', k), '_hat')), beta_0_hatic,
+                    X0_cut2, y0_cut2, u_target, hic = hic))
+    }
+    # Step 3: Get informative sets:
+    # Step 3.1 true
+    index_true1 <- c()
+    if (verbose == T) {
+      print(get(paste0('Q', 0)))
+    }
+    for (k in 1:length(x_aux_bd)) {
+      if (verbose == T) {
+        print(get(paste0('Q', k)))
+      }
+      if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
+        index_true1 <- c(index_true1, k)
+      } else{
+        next
+      }
+    }
+    # Step 3.2 psd
+    index_psd1 <- NULL
+    if (!is.null(info_num)) {
+      Q_K_vec <- c()
+      for (k in 1:length(x_aux_bd)) {
+        Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
+      }
+      index_psd1 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+                          Q_K_vec)
+    } else{
+      index_psd1 <- c()
+    }
+    # CV2
+    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = 0.8)$coefficients
+    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    # source:
+    if (parallel == F){
+      for (k in 1:length(x_aux_bd)) {
+        if (is.null(h)) {
+          assign(paste0(paste0('beta_', k), '_hat'),
+                 rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[k]]),
+                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
+                           mode = mode))
+        } else{
+          assign(paste0(paste0('beta_', k), '_hat'),
+                 rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[k]]),
+                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
+                           h = c(h[1], h[k + 1]), mode = mode))
+        }
+      }
+    } else{
+      i <- NULL # pass R-CMD check
+      cl <- makeCluster(min(detectCores() - 3, ncore))
+      registerDoSNOW(cl)
+      pb <- txtProgressBar(max = M, style = 3)
+      progress <- function(n) setTxtProgressBar(pb, n)
+      opts <- list(progress = progress)
+      betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
+                             .packages = c('quantreg', 'glmnet'),
+                             .inorder = T) %dopar% {
+        if (is.null(h)) {
+          rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
+                    u_target, c(u_aux_bd[i]), mode = mode)
+        } else {
+          rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
+                    u_target, c(u_aux_bd[i]), h = c(h[1], h[i + 1]),
+                    mode = mode)
+          }
+      }
+      close(pb)
+      stopCluster(cl)
+      for (k in 1:length(x_aux_bd)) {
+        assign(paste0(paste0('beta_', k), '_hat'), betasources[, k])
+      }
+    }
+    # Step 2: Calculate the loss based on the loss function:
+    beta_0_hatic <- rq.fit.lasso(X0_cut1, y0_cut1, tau = 0.8)$coefficients
+    #hic <- hchoose(X0_cut1,y0_cut1,u_target)
+    hic <- h[1]
+    for (k in c(0, (1:length(x_aux_bd)))) {
+      assign(paste0('Q', k),
+             Q_loss(get(paste0(paste0('beta_', k), '_hat')),
+                    beta_0_hatic, X0_cut1, y0_cut1, u_target, hic = hic))
+    }
+    # Step 3: Get informative sets:
+    # Step 3.1 true
+    index_true2 <- c()
+    if (verbose == T) {
+      print(get(paste0('Q', 0)))
+    }
+    for (k in 1:length(x_aux_bd)) {
+      if (verbose == T) {
+        print(get(paste0('Q', k)))
+      }
+      if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
+        index_true2 <- c(index_true2, k)
+      } else{
+        next
+      }
+    }
+    # Step 3.2 psd
+    index_psd2 <- NULL
+    if (!is.null(info_num)) {
+      Q_K_vec <- c()
+      for (k in 1:length(x_aux_bd)) {
+        Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
+      }
+      index_psd2 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+                          Q_K_vec)
+    } else{
+      index_psd2 <- c()
+    }
+    index_true <- intersect(index_true1, index_true2)
+    index_psd <- intersect(index_psd1, index_psd2)
+    return(list('true' = index_true, 'psd' = index_psd))
   }
 }
