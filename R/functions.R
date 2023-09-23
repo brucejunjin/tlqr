@@ -547,6 +547,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   if (length(x_aux_bd) != length(y_aux_bd)) {
     print('the # of datasets for x and y are not agreed!')
   } else {
+    set.seed(seed)
     M <- length(x_aux_bd)
     total_index <- 1:length(x_aux_bd)
     # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)

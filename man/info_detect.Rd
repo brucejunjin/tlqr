@@ -17,6 +17,7 @@ info_detect(
   parallel = TRUE,
   ncore = 10,
   info_num = NULL,
+  seed = 111,
   verbose = FALSE
 )
 }
@@ -56,6 +57,8 @@ takes longer time.}
 
 \item{info_num}{An integar. Default is NULL. The given number of informative
 sources under pseduo running.}
+
+\item{seed}{A integer variable for the random seed, default is 111.}
 
 \item{verbose}{A logic variable, default is FALSE.}
 }
