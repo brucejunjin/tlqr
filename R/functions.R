@@ -533,6 +533,7 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
 #' @param info_num An integar. Default is NULL. The given number of informative
 #' sources under pseduo running.
 #' @param verbose A logic variable, default is FALSE.
+#' @param seed A integer variable for the random seed, default is 111.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom parallel makeCluster stopCluster detectCores
 #' @importFrom foreach foreach `%dopar%`
@@ -542,7 +543,7 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
 info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                         u_aux_bd, epsilon = 0.01, h = NULL, mode = 'real',
                         parallel = TRUE, ncore = 10, info_num = NULL,
-                        verbose = FALSE){
+                        seed = 111, verbose = FALSE){
   if (length(x_aux_bd) != length(y_aux_bd)) {
     print('the # of datasets for x and y are not agreed!')
   } else {

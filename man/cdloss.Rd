@@ -3,7 +3,7 @@
 \name{cdloss}
 \alias{cdloss}
 \title{Calculate the quantile loss based on the given samples, coefficient, and the
- quantile level}
+quantile level}
 \usage{
 cdloss(x, y, beta, u)
 }
@@ -21,5 +21,5 @@ A scalar. The quantile loss based on the given inputs.
 }
 \description{
 Calculate the quantile loss based on the given samples, coefficient, and the
- quantile level
+quantile level
 }
