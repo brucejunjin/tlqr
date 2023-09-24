@@ -183,7 +183,7 @@ K <- function(x) {
 tune_lasso  <- function(x, y, nfolds = 10, seed = 111) {
   set.seed(seed)
   cvfit <- cv.glmnet(x = x, y = y, nfolds = nfolds, alpha = 1, intercept = F,
-                     type.measure = 'mse', standardize = F)
+                     standardize = F)
   return(cvfit$lambda.min)
 }
 
@@ -241,12 +241,12 @@ hchoose <- function(x, y, u, thresh = 0.05) {
 #' @param h A vector with length (K+1), where K is the number of auxiliary
 #' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 #' cross validation will be carried out.
+#' @param parallel A logic variable, default is FALSE.
+#' @param ncore The integer, the number of cores used for parallel computation.
 #' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
 #' allowed. The difference of mode leads to different operations for the
 #' selection of strength of penalty in fusion-debiase modeling. 'real' mode
 #' takes longer time.
-#' @param parallel A logic variable, default is FALSE.
-#' @param ncore The integer, the number of cores used for parallel computation.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom glmnet glmnet
 #' @importFrom parallel makeCluster detectCores stopCluster
@@ -256,8 +256,8 @@ hchoose <- function(x, y, u, thresh = 0.05) {
 #' @return A vector. The corresponding transfer learning estimator based on
 #' the given auxiliary sources.
 rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
-                        u_aux_bd, h = NULL, mode = 'real', parallel = FALSE,
-                        ncore = 20){
+                        u_aux_bd, h = NULL, parallel = FALSE, ncore = 20,
+                        mode = 'real'){
   for (k in 1:length(x_aux_bd)) {
     if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
       print("Two numbers of features don't match!")
@@ -338,19 +338,18 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   for (k in 1:length(x_aux_bd)){
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
-  if (mode == 'simulation'){
-    lambda_2 <- sqrt(2 * log(nrow(x_target)) / nrow(x_comb))
-  } else{
+  if (mode == 'real'){
     lambda_2 <- tune_lasso(x_comb, y_comb, nfolds = 10)
+  } else {
+    lambda_2 <- sqrt(2 * log(nrow(x_target)) / nrow(x_comb))
   }
   w_hat <- glmnet(x_comb, y_comb, lambda = lambda_2, intercept = F,
                   standardize = F)$beta
   # Step 3:
-  if (mode == 'simulation'){
-    lambda_3 <- sqrt(2 * log(nrow(x_target)) / nrow(x_target))
+  if (mode == 'real'){
+    lambda_3 <- lambda_2 * sqrt(nrow(x_comb)/nrow(x_target))
   } else {
-    lambda_3 <- tune_lasso(x_target, y_target_tild - (x_target %*% w_hat),
-                           nfolds = 10)
+    lambda_3 <- sqrt(2 * log(nrow(x_target)) / nrow(x_target))
   }
   delta_hat <- glmnet(x_target, y_target_tild - (x_target %*% w_hat),
                       lambda = lambda_3, intercept = F, standardize = F)$beta
@@ -374,12 +373,12 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
 #' @param h A vector with length (K+1), where K is the number of auxiliary
 #' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 #' cross validation will be carried out.
-#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
-#' allowed. The difference of mode leads to different operations for the
-#' selection of strength of penalty in fusion modeling. 'real' mode takes
-#' longer time.
 #' @param parallel A logic variable, default is FALSE.
 #' @param ncore The integer, the number of cores used for parallel computation.
+#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
+#' allowed. The difference of mode leads to different operations for the
+#' selection of strength of penalty in fusion-debiase modeling. 'real' mode
+#' takes longer time.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom glmnet glmnet
 #' @importFrom parallel makeCluster detectCores stopCluster
@@ -389,8 +388,8 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
 #' @return A vector. The fusion estimator withou debias procedure based on the
 #' given auxiliary sources.
 rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
-                      u_aux_bd, h = NULL, mode='real', parallel = FALSE,
-                      ncore = 20) {
+                      u_aux_bd, h = NULL, parallel = FALSE, ncore = 20,
+                      mode = 'real') {
   for (k in 1:length(x_aux_bd)) {
     if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
       print("Two numbers of features don't match!")
@@ -470,10 +469,10 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   for (k in 1:length(x_aux_bd)) {
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
-  if (mode == 'simulation') {
+  if (mode == 'real') {
+    lambda_2 <- tune_lasso(x_comb, y_comb, nfolds = 10) 
+  } else {
     lambda_2 <- sqrt(2 * log(nrow(x_target)) / nrow(x_comb))
-  } else{
-    lambda_2 <- tune_lasso(x_comb, y_comb, nfolds = 10)
   }
   w_hat <- glmnet(x_comb, y_comb, lambda = lambda_2, intercept = F,
                   standardize = F)$beta
@@ -524,16 +523,16 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
 #' @param h A vector with length (K+1), where K is the number of auxiliary
 #' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 #' cross validation will be carried out.
-#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
-#' allowed. The difference of mode leads to different operations for the
-#' selection of strength of penalty in fusion modeling. 'real' mode
-#' takes longer time.
 #' @param parallel A logic variable, default is TRUE
 #' @param ncore The integer, the number of cores used for parallel computation.
 #' @param info_num An integar. Default is NULL. The given number of informative
 #' sources under pseduo running.
 #' @param verbose A logic variable, default is FALSE.
 #' @param seed A integer variable for the random seed, default is 111.
+#' @param mode A string. Default is 'real'. Only 'simulation' or 'real' is
+#' allowed. The difference of mode leads to different operations for the
+#' selection of strength of penalty in fusion-debiase modeling. 'real' mode
+#' takes longer time.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom parallel makeCluster stopCluster detectCores
 #' @importFrom foreach foreach `%dopar%`
@@ -541,9 +540,9 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
 #' @importFrom utils head setTxtProgressBar txtProgressBar
 #' @return A vector of index. The index of the informative sources.
 info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
-                        u_aux_bd, epsilon = 0.01, h = NULL, mode = 'real',
-                        parallel = TRUE, ncore = 10, info_num = NULL,
-                        seed = 111, verbose = FALSE){
+                        u_aux_bd, epsilon = 0.01, h = NULL, parallel = TRUE,
+                        ncore = 10, info_num = NULL, seed = 111,
+                        verbose = FALSE, mode = 'real'){
   if (length(x_aux_bd) != length(y_aux_bd)) {
     print('the # of datasets for x and y are not agreed!')
   } else {
@@ -691,6 +690,251 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       assign(paste0('Q', k),
              Q_loss(get(paste0(paste0('beta_', k), '_hat')),
                     beta_0_hatic, X0_cut1, y0_cut1, u_target, hic = hic))
+    }
+    # Step 3: Get informative sets:
+    # Step 3.1 true
+    index_true2 <- c()
+    if (verbose == T) {
+      print(get(paste0('Q', 0)))
+    }
+    for (k in 1:length(x_aux_bd)) {
+      if (verbose == T) {
+        print(get(paste0('Q', k)))
+      }
+      if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
+        index_true2 <- c(index_true2, k)
+      } else{
+        next
+      }
+    }
+    # Step 3.2 psd
+    index_psd2 <- NULL
+    if (!is.null(info_num)) {
+      Q_K_vec <- c()
+      for (k in 1:length(x_aux_bd)) {
+        Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
+      }
+      index_psd2 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+                          Q_K_vec)
+    } else{
+      index_psd2 <- c()
+    }
+    index_true <- intersect(index_true1, index_true2)
+    index_psd <- intersect(index_psd1, index_psd2)
+    return(list('true' = index_true, 'psd' = index_psd))
+  }
+}
+
+#' Oracle Trans-pooling QR with a given informative sources set
+#' @export
+#' @param x_target A n*p matrix as the covariate from the target population.
+#' @param y_target A vector with length n as the response from the target
+#' population.
+#' @param x_aux_bd A list object that each element is a n*p matrix as the
+#' covariate from informative sources.
+#' @param y_aux_bd A list object that each element is a vector with length n
+#' as the covariate from informative sources.
+#' @param u A scalar in (0,1). The quantile level for all models.
+#' @importFrom quantreg rq.fit.lasso
+#' @return A vector. The corresponding transfer learning estimator based on
+#' the given auxiliary sources based on Huang 2022.
+rq.transfer.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u){
+  for (k in 1:length(x_aux_bd)) {
+    if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
+      print("Two numbers of features don't match!")
+      break
+    }
+  }
+  # fusion
+  x_comb <- x_target
+  for (k in 1:length(x_aux_bd)){
+    x_comb <- rbind(x_comb, x_aux_bd[[k]])
+  }
+  y_comb <- y_target
+  for (k in 1:length(x_aux_bd)){
+    y_comb <- c(y_comb, y_aux_bd[[k]])
+  }
+  beta_fusion <- rq.fit.lasso(x_comb, y_comb, tau = u)$coefficients
+  # debias
+  beta_db <- rq.fit.lasso(x_target,
+                          y_target - (x_target %*% beta_fusion),
+                          tau = u)$coefficients
+  return(beta_fusion + beta_db)
+}
+
+#' Build fusion model for Trans-pooling QR between datasets without debias
+#' procedure
+#' @export
+#' @param x_target A n*p matrix as the covariate from the target population.
+#' @param y_target A vector with length n as the response from the target
+#' population.
+#' @param x_aux_bd A list object that each element is a n*p matrix as the
+#' covariate from informative sources.
+#' @param y_aux_bd A list object that each element is a vector with length n
+#' as the covariate from informative sources.
+#' @param u A scalar in (0,1). The quantile level for all models.
+#' @importFrom quantreg rq.fit.lasso
+#' @return A vector. The fusion estimator withou debias procedure based on the
+#' given auxiliary sources.
+rq.fusion.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u) {
+  for (k in 1:length(x_aux_bd)) {
+    if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
+      print("Two numbers of features don't match!")
+      break
+    }
+  }
+  # fusion
+  x_comb <- x_target
+  for (k in 1:length(x_aux_bd)){
+    x_comb <- rbind(x_comb, x_aux_bd[[k]])
+  }
+  y_comb <- y_target
+  for (k in 1:length(x_aux_bd)){
+    y_comb <- c(y_comb, y_aux_bd[[k]])
+  }
+  beta_fusion <- rq.fit.lasso(x_comb, y_comb, tau = u)$coefficients
+  return(beta_fusion)
+}
+
+
+#' Main function for informative sources detection among all dataset for
+#' Trans-pooling QR
+#' @export
+#' @param x_target A n*p matrix as the covariate from the target population.
+#' @param y_target A vector with length n as the response from the target
+#' population.
+#' @param x_aux_bd A list object that each element is a n*p matrix as the
+#' covariate from informative sources.
+#' @param y_aux_bd A list object that each element is a vector with length n
+#' as the covariate from informative sources.
+#' @param u A scalar in (0,1). The quantile level for all models.
+#' @param epsilon A scalar. Default is 0.01. The strict level for informative
+#' sources detectiond, larger the value is, less strict the procedure is.
+#' @param parallel A logic variable, default is TRUE
+#' @param ncore The integer, the number of cores used for parallel computation.
+#' @param info_num An integar. Default is NULL. The given number of informative
+#' sources under pseduo running.
+#' @param verbose A logic variable, default is FALSE.
+#' @param seed A integer variable for the random seed, default is 111.
+#' @importFrom quantreg rq.fit.lasso
+#' @importFrom parallel makeCluster stopCluster detectCores
+#' @importFrom foreach foreach `%dopar%`
+#' @importFrom doSNOW registerDoSNOW
+#' @importFrom utils head setTxtProgressBar txtProgressBar
+#' @return A vector of index. The index of the informative sources.
+info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
+                        epsilon = 0.01, parallel = TRUE, ncore = 10,
+                        info_num = NULL, seed = 111, verbose = FALSE){
+  if (length(x_aux_bd) != length(y_aux_bd)) {
+    print('the # of datasets for x and y are not agreed!')
+  } else {
+    set.seed(seed)
+    M <- length(x_aux_bd)
+    total_index <- 1:length(x_aux_bd)
+    # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
+    target_index <- 1:nrow(x_target)
+    X0_index <- sample(target_index, size = round(nrow(x_target) / 2),
+                       replace = F)
+    X0_cut1 <- x_target[X0_index,]
+    X0_cut2 <- x_target[-X0_index,]
+    y0_cut1 <- y_target[X0_index]
+    y0_cut2 <- y_target[-X0_index]
+    # CV1:
+    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau=u)$coefficients
+    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    # source:
+    if (parallel == F){
+      for (k in 1:length(x_aux_bd)) {
+        assign(paste0(paste0('beta_', k), '_hat'),
+               rq.fusion.pool(X0_cut1, y0_cut1, list(x_aux_bd[[k]]),
+                              list(y_aux_bd[[k]]), u))
+      }
+    } else{
+      i <- NULL # pass R-CMD check
+      cl <- makeCluster(min(detectCores() - 3, ncore))
+      registerDoSNOW(cl)
+      pb <- txtProgressBar(max = M, style = 3)
+      progress <- function(n) setTxtProgressBar(pb, n)
+      opts <- list(progress = progress)
+      betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
+                             .packages = c('quantreg'), .inorder = T) %dopar% {
+        rq.fusion.pool(X0_cut1, y0_cut1, list(x_aux_bd[[i]]), 
+                       list(y_aux_bd[[i]]),u)
+      }
+      close(pb)
+      stopCluster(cl)
+      for (k in 1:length(x_aux_bd)) {
+        assign(paste0(paste0('beta_', k), '_hat'), betasources[, k])
+      }
+    }
+    # Step 2: Calculate the loss based on the loss function:
+    for (k in c(0, (1:length(x_aux_bd)))) {
+      assign(paste0('Q', k),
+             cdloss(X0_cut2, y0_cut2, get(paste0(paste0('beta_', k), '_hat')),
+                    u))
+    }
+    # Step 3: Get informative sets:
+    # Step 3.1 true
+    index_true1 <- c()
+    if (verbose == T) {
+      print(get(paste0('Q', 0)))
+    }
+    for (k in 1:length(x_aux_bd)) {
+      if (verbose == T) {
+        print(get(paste0('Q', k)))
+      }
+      if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
+        index_true1 <- c(index_true1, k)
+      } else{
+        next
+      }
+    }
+    # Step 3.2 psd
+    index_psd1 <- NULL
+    if (!is.null(info_num)) {
+      Q_K_vec <- c()
+      for (k in 1:length(x_aux_bd)) {
+        Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
+      }
+      index_psd1 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+                          Q_K_vec)
+    } else{
+      index_psd1 <- c()
+    }
+    # CV2
+    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u)$coefficients
+    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    if (parallel == F){
+      for (k in 1:length(x_aux_bd)) {
+        assign(paste0(paste0('beta_', k), '_hat'),
+               rq.fusion.pool(X0_cut2, y0_cut2, list(x_aux_bd[[k]]),
+                              list(y_aux_bd[[k]]), u))
+      }
+    } else{
+      i <- NULL # pass R-CMD check
+      cl <- makeCluster(min(detectCores() - 3, ncore))
+      registerDoSNOW(cl)
+      pb <- txtProgressBar(max = M, style = 3)
+      progress <- function(n) setTxtProgressBar(pb, n)
+      opts <- list(progress = progress)
+      betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
+                             .packages = c('quantreg'), .inorder = T) %dopar% {
+        rq.fusion.pool(X0_cut2, y0_cut2, list(x_aux_bd[[i]]), 
+                       list(y_aux_bd[[i]]),u)
+      }
+      close(pb)
+      stopCluster(cl)
+      for (k in 1:length(x_aux_bd)) {
+        assign(paste0(paste0('beta_', k), '_hat'), betasources[, k])
+      }
+    }
+    # Step 2: Calculate the loss based on the loss function:
+    for (k in c(0, (1:length(x_aux_bd)))) {
+      assign(paste0('Q', k),
+             cdloss(X0_cut1, y0_cut1, get(paste0(paste0('beta_', k), '_hat')),
+                    u))
     }
     # Step 3: Get informative sets:
     # Step 3.1 true

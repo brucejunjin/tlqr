@@ -12,9 +12,9 @@ rq.transfer(
   u_target,
   u_aux_bd,
   h = NULL,
-  mode = "real",
   parallel = FALSE,
-  ncore = 20
+  ncore = 20,
+  mode = "real"
 )
 }
 \arguments{
@@ -39,14 +39,14 @@ populations.}
 datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 cross validation will be carried out.}
 
+\item{parallel}{A logic variable, default is FALSE.}
+
+\item{ncore}{The integer, the number of cores used for parallel computation.}
+
 \item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is
 allowed. The difference of mode leads to different operations for the
 selection of strength of penalty in fusion-debiase modeling. 'real' mode
 takes longer time.}
-
-\item{parallel}{A logic variable, default is FALSE.}
-
-\item{ncore}{The integer, the number of cores used for parallel computation.}
 }
 \value{
 A vector. The corresponding transfer learning estimator based on
