@@ -13,8 +13,7 @@ rq.transfer(
   u_aux_bd,
   h = NULL,
   parallel = FALSE,
-  ncore = 20,
-  mode = "real"
+  ncore = 20
 )
 }
 \arguments{
@@ -42,11 +41,6 @@ cross validation will be carried out.}
 \item{parallel}{A logic variable, default is FALSE.}
 
 \item{ncore}{The integer, the number of cores used for parallel computation.}
-
-\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is
-allowed. The difference of mode leads to different operations for the
-selection of strength of penalty in fusion-debiase modeling. 'real' mode
-takes longer time.}
 }
 \value{
 A vector. The corresponding transfer learning estimator based on

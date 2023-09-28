@@ -4,7 +4,7 @@
 \alias{hchoose}
 \title{Select bandwidth h by cross validation}
 \usage{
-hchoose(x, y, u, thresh = 0.05)
+hchoose(x, y, u)
 }
 \arguments{
 \item{x}{design matrix which is in size of n*p.}
@@ -12,8 +12,6 @@ hchoose(x, y, u, thresh = 0.05)
 \item{y}{response vector.}
 
 \item{u}{A scalar for the quantile level.}
-
-\item{thresh}{A scalar for the setting the minimum of the bandwidth.}
 }
 \description{
 Select bandwidth h by cross validation

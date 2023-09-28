@@ -17,8 +17,7 @@ info_detect(
   ncore = 10,
   info_num = NULL,
   seed = 111,
-  verbose = FALSE,
-  mode = "real"
+  verbose = FALSE
 )
 }
 \arguments{
@@ -56,11 +55,6 @@ sources under pseduo running.}
 \item{seed}{A integer variable for the random seed, default is 111.}
 
 \item{verbose}{A logic variable, default is FALSE.}
-
-\item{mode}{A string. Default is 'real'. Only 'simulation' or 'real' is
-allowed. The difference of mode leads to different operations for the
-selection of strength of penalty in fusion-debiase modeling. 'real' mode
-takes longer time.}
 }
 \value{
 A vector of index. The index of the informative sources.

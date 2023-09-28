@@ -5,13 +5,15 @@
 \title{Build the function for tunning the parameter based on given data for lasso
 problem.}
 \usage{
-tune_lasso(x, y, nfolds = 10, seed = 111)
+tune_lasso(x, y, ntarget, nfolds = 10, seed = 111)
 }
 \arguments{
 \item{x}{A n*p matrix as the training and validation covariate.}
 
 \item{y}{A vector with length n as the response from training and
 validation.}
+
+\item{ntarget}{An integer for the sample size of target dataset.}
 
 \item{nfolds}{The number of folds for the cross validation.}
 
