@@ -176,17 +176,17 @@ K <- function(x) {
 #' @param x A n*p matrix as the training and validation covariate.
 #' @param y A vector with length n as the response from training and
 #' validation.
-#' @param ntarget An integer for the sample size of target dataset.
+#' @param nbar The maximum sample size among all datasets
 #' @param nfolds The number of folds for the cross validation.
 #' @param seed An integer. The default is 111. The random seed.
 #' @importFrom glmnet cv.glmnet
 #' @return A scalar. The best lambda value for penalized model.
-tune_lasso  <- function(x, y, ntarget, nfolds = 10, seed = 111) {
+tune_lasso  <- function(x, y, nbar, nfolds = 10, seed = 111) {
   set.seed(seed)
-  base = sqrt(2 * log(max(ntarget, ncol(x))) / nrow(x))
-  lambda_seq <- c(0.01, 0.05, 0.1, 0.5, 1, 5, 10) * base
-  cvfit <- cv.glmnet(x = x, y = y, lambda = lambda_seq, nfolds = nfolds,
-                     alpha = 1, intercept = F, standardize = F)
+  base <- sqrt(2 * log(max(ncol(x), nbar)) / nrow(x))
+  lambda_seq <- c(0.001, 0.005, 0.01, 0.05, 0.1, 1, 5, 10) * base
+  cvfit <- cv.glmnet(x = x, y = y, nfolds = nfolds, alpha = 1, intercept = F,
+                     standardize = F, lambda = lambda_seq)
   return(cvfit$lambda.min)
 }
 
@@ -212,7 +212,7 @@ hchoose <- function(x, y, u) {
       y_tild <- x %*% beta_hat - f_hat ^ -1 * (ifelse(y - x %*% beta_hat <= 0,
                                                       1, 0) - u)
       cvfit <- cv.glmnet(x = x, y = y_tild, alpha = 1, intercept = F,
-                         type.measure = 'mse', standardize = F)
+                         standardize = F)
       b_hat <- glmnet(x, y_tild, lambda = cvfit$lambda.min, intercept = F,
                       standardize = F)$beta
       return(cdloss(x = x, y = y, beta = b_hat, u = u))
@@ -243,8 +243,14 @@ hchoose <- function(x, y, u) {
 #' @param h A vector with length (K+1), where K is the number of auxiliary
 #' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 #' cross validation will be carried out.
+#' @param lambda1 A scalar for the penalty strength in fusion step. Default
+#' is null, if null, a cross validation will be carried for searching.
+#' @param lambda2 A scalar for the penalty strength in debiasing step. Default
+#' is null, if null, lambda2 will be calculated based on lambda1 according to
+#' the proportion of sample sizes as described in our paper.
 #' @param parallel A logic variable, default is FALSE.
 #' @param ncore The integer, the number of cores used for parallel computation.
+#' @param seed An integer for random seed, default is 111.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom glmnet glmnet
 #' @importFrom parallel makeCluster detectCores stopCluster
@@ -254,14 +260,17 @@ hchoose <- function(x, y, u) {
 #' @return A vector. The corresponding transfer learning estimator based on
 #' the given auxiliary sources.
 rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
-                        u_aux_bd, h = NULL, parallel = FALSE, ncore = 20) {
+                        u_aux_bd, h = NULL, lambda1 = NULL, lambda2 = NULL,
+                        parallel = FALSE, ncore = 20, seed = 111) {
   for (k in 1:length(x_aux_bd)) {
     if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
       print("Two numbers of features don't match!")
       break
     }
   }
+  set.seed(seed)
   nt <- nrow(x_target)
+  nbar <- max(sapply(1:length(x_aux_bd), function(h) {nrow(x_aux_bd[[h]])}))
   # Step 1:
   # For target
   beta_target_hat <- rq.fit.lasso(x_target, y_target, tau = 0.8)$coefficients
@@ -287,6 +296,7 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                              .combine = 'c', .multicombine=T,
                              .packages = c('quantreg'),
                              .inorder = TRUE) %dopar% {
+      set.seed(seed)
       x_source <- x_aux_bd[[i]]
       y_source <- y_aux_bd[[i]]
       u_source <- u_aux_bd[i]
@@ -308,7 +318,8 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     stopCluster(cl)
   } else {
     y_aux_tild_bd <- list()
-    for (k in 1:length(x_aux_bd)){
+    for (k in 1:length(x_aux_bd)) {
+      set.seed(seed)
       x_source <- x_aux_bd[[k]]
       y_source <- y_aux_bd[[k]]
       u_source <- u_aux_bd[k]
@@ -328,20 +339,30 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   # Step 2:
   x_comb <- x_target
-  for (k in 1:length(x_aux_bd)){
+  for (k in 1:length(x_aux_bd)) {
     x_comb <- rbind(x_comb, x_aux_bd[[k]])
   }
   y_comb <- y_target_tild
-  for (k in 1:length(x_aux_bd)){
+  for (k in 1:length(x_aux_bd)) {
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
-  lambda_2 <- tune_lasso(x_comb, y_comb, ntarget = nt, nfolds = 10)
-  w_hat <- glmnet(x_comb, y_comb, lambda = lambda_2, intercept = F,
+  y_ori <- y_target
+  for (k in 1:length(x_aux_bd)) {
+    y_ori <- c(y_ori, y_aux_bd[[k]])
+  }
+  if (is.null(lambda1)) {
+    lambda1 <- tune_lasso(x_comb, y_comb, nbar = nbar, nfolds = 10)
+  }
+  print(lambda1)
+  w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
                   standardize = F)$beta
   # Step 3:
-  lambda_3 <- lambda_2 * sqrt(nrow(x_comb)/nrow(x_target))
+  if (is.null(lambda2)) {
+    lambda2 <- lambda1 * sqrt(nrow(x_comb) / nrow(x_target))
+  }
+  print(lambda2)
   delta_hat <- glmnet(x_target, y_target_tild - (x_target %*% w_hat),
-                      lambda = lambda_3, intercept = F, standardize = F)$beta
+                      lambda = lambda2, intercept = F, standardize = F)$beta
   return(w_hat + delta_hat)
 }
 
@@ -362,8 +383,11 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
 #' @param h A vector with length (K+1), where K is the number of auxiliary
 #' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 #' cross validation will be carried out.
+#' @param lambda1 A scalar for the penalty strength in fusion step. Default
+#' is null, if null, a cross validation will be carried for searching.
 #' @param parallel A logic variable, default is FALSE.
 #' @param ncore The integer, the number of cores used for parallel computation.
+#' @param seed An integer for random seed, default is 111.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom glmnet glmnet
 #' @importFrom parallel makeCluster detectCores stopCluster
@@ -373,14 +397,17 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
 #' @return A vector. The fusion estimator withou debias procedure based on the
 #' given auxiliary sources.
 rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
-                      u_aux_bd, h = NULL, parallel = FALSE, ncore = 20) {
+                      u_aux_bd, h = NULL, lambda1 = NULL, parallel = FALSE,
+                      ncore = 20, seed = 111) {
   for (k in 1:length(x_aux_bd)) {
     if (ncol(x_target) != ncol(x_aux_bd[[k]])) {
       print("Two numbers of features don't match!")
       break
     }
   }
+  set.seed(seed)
   nt <- nrow(x_target)
+  nbar <- max(sapply(1:length(x_aux_bd), function(h) {nrow(x_aux_bd[[h]])}))
   # Step 1:
   # For target
   beta_target_hat <- rq.fit.lasso(x_target, y_target,
@@ -406,6 +433,7 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                              .combine = 'c', .multicombine=T,
                              .packages = c('quantreg'),
                              .inorder = TRUE) %dopar% {
+      set.seed(seed)
       x_source <- x_aux_bd[[i]]
       y_source <- y_aux_bd[[i]]
       u_source <- u_aux_bd[i]
@@ -427,6 +455,7 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   } else {
     y_aux_tild_bd <- list()
     for (k in 1:length(x_aux_bd)) {
+      set.seed(seed)
       x_source <- x_aux_bd[[k]]
       y_source <- y_aux_bd[[k]]
       u_source <- u_aux_bd[k]
@@ -453,8 +482,14 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   for (k in 1:length(x_aux_bd)) {
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
-  lambda_2 <- tune_lasso(x_comb, y_comb, ntarget = nt, nfolds = 10)
-  w_hat <- glmnet(x_comb, y_comb, lambda = lambda_2, intercept = F,
+  y_ori <- y_target
+  for (k in 1:length(x_aux_bd)) {
+    y_ori <- c(y_ori, y_aux_bd[[k]])
+  }
+  if (is.null(lambda1)) {
+    lambda1 <- tune_lasso(x_comb, y_comb, nbar = nbar, nfolds = 10)
+  }
+  w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
                   standardize = F)$beta
   return(w_hat)
 }
@@ -503,6 +538,8 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
 #' @param h A vector with length (K+1), where K is the number of auxiliary
 #' datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 #' cross validation will be carried out.
+#' @param lambda1 A scalar for the penalty strength in fusion step. Default
+#' is null, if null, a cross validation will be carried for searching.
 #' @param parallel A logic variable, default is TRUE
 #' @param ncore The integer, the number of cores used for parallel computation.
 #' @param info_num An integar. Default is NULL. The given number of informative
@@ -516,9 +553,9 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
 #' @importFrom utils head setTxtProgressBar txtProgressBar
 #' @return A vector of index. The index of the informative sources.
 info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
-                        u_aux_bd, epsilon = 0.01, h = NULL, parallel = TRUE,
-                        ncore = 10, info_num = NULL, seed = 111,
-                        verbose = FALSE){
+                        u_aux_bd, epsilon = 0.01, h = NULL, lambda1 = NULL,
+                        parallel = TRUE, ncore = 10, info_num = NULL,
+                        seed = 111, verbose = FALSE){
   if (length(x_aux_bd) != length(y_aux_bd)) {
     print('the # of datasets for x and y are not agreed!')
   } else {
@@ -543,12 +580,13 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
         if (is.null(h)) {
           assign(paste0(paste0('beta_', k), '_hat'),
                  rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[k]]),
-                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k])))
+                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
+                           lambda1 = lambda1))
         } else{
           assign(paste0(paste0('beta_', k), '_hat'),
                  rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[k]]),
                            list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
-                           h = c(h[1], h[k + 1])))
+                           h = c(h[1], h[k + 1]), lambda1 = lambda1))
         }
       }
     } else{
@@ -563,10 +601,11 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                              .inorder = T) %dopar% {
         if (is.null(h)) {
           rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
-                    u_target, c(u_aux_bd[i]))
+                    u_target, c(u_aux_bd[i]), lambda1 = lambda1)
         } else{
           rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
-                    u_target, c(u_aux_bd[i]), h = c(h[1], h[i + 1]))
+                    u_target, c(u_aux_bd[i]), h = c(h[1], h[i + 1]),
+                    lambda1 = lambda1)
         }
       }
       close(pb)
@@ -622,12 +661,13 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
         if (is.null(h)) {
           assign(paste0(paste0('beta_', k), '_hat'),
                  rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[k]]),
-                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k])))
+                           list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
+                           lambda1 = lambda1))
         } else{
           assign(paste0(paste0('beta_', k), '_hat'),
                  rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[k]]),
                            list(y_aux_bd[[k]]), u_target, c(u_aux_bd[k]),
-                           h = c(h[1], h[k + 1])))
+                           h = c(h[1], h[k + 1]), lambda1 = lambda1))
         }
       }
     } else{
@@ -642,10 +682,11 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                              .inorder = T) %dopar% {
         if (is.null(h)) {
           rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
-                    u_target, c(u_aux_bd[i]))
+                    u_target, c(u_aux_bd[i]), lambda1 = lambda1)
         } else {
           rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
-                    u_target, c(u_aux_bd[i]), h = c(h[1], h[i + 1]))
+                    u_target, c(u_aux_bd[i]), h = c(h[1], h[i + 1]),
+                    lambda1 = lambda1)
           }
       }
       close(pb)
@@ -941,3 +982,4 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     return(list('true' = index_true, 'psd' = index_psd))
   }
 }
+

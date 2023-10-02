@@ -12,8 +12,10 @@ rq.fusion(
   u_target,
   u_aux_bd,
   h = NULL,
+  lambda1 = NULL,
   parallel = FALSE,
-  ncore = 20
+  ncore = 20,
+  seed = 111
 )
 }
 \arguments{
@@ -38,9 +40,14 @@ populations.}
 datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 cross validation will be carried out.}
 
+\item{lambda1}{A scalar for the penalty strength in fusion step. Default
+is null, if null, a cross validation will be carried for searching.}
+
 \item{parallel}{A logic variable, default is FALSE.}
 
 \item{ncore}{The integer, the number of cores used for parallel computation.}
+
+\item{seed}{An integer for random seed, default is 111.}
 }
 \value{
 A vector. The fusion estimator withou debias procedure based on the

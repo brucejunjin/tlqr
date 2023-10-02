@@ -13,6 +13,7 @@ info_detect(
   u_aux_bd,
   epsilon = 0.01,
   h = NULL,
+  lambda1 = NULL,
   parallel = TRUE,
   ncore = 10,
   info_num = NULL,
@@ -44,6 +45,9 @@ sources detectiond, larger the value is, less strict the procedure is.}
 \item{h}{A vector with length (K+1), where K is the number of auxiliary
 datasets. It pre-determine the bandwidth. The default is NULL, if NULL,
 cross validation will be carried out.}
+
+\item{lambda1}{A scalar for the penalty strength in fusion step. Default
+is null, if null, a cross validation will be carried for searching.}
 
 \item{parallel}{A logic variable, default is TRUE}
 
