@@ -170,26 +170,6 @@ K <- function(x) {
   }
 }
 
-#' Build the function for tunning the parameter based on given data for lasso
-#' problem.
-#' @export
-#' @param x A n*p matrix as the training and validation covariate.
-#' @param y A vector with length n as the response from training and
-#' validation.
-#' @param nbar The maximum sample size among all datasets
-#' @param nfolds The number of folds for the cross validation.
-#' @param seed An integer. The default is 111. The random seed.
-#' @importFrom glmnet cv.glmnet
-#' @return A scalar. The best lambda value for penalized model.
-tune_lasso  <- function(x, y, nbar, nfolds = 10, seed = 111) {
-  set.seed(seed)
-  base <- sqrt(2 * log(max(ncol(x), nbar)) / nrow(x))
-  lambda_seq <- c(0.001, 0.005, 0.01, 0.05, 0.1, 1, 5, 10) * base
-  cvfit <- cv.glmnet(x = x, y = y, nfolds = nfolds, alpha = 1, intercept = F,
-                     standardize = F, lambda = lambda_seq)
-  return(cvfit$lambda.min)
-}
-
 
 #' Select bandwidth h by cross validation
 #' @export
@@ -252,7 +232,7 @@ hchoose <- function(x, y, u) {
 #' @param ncore The integer, the number of cores used for parallel computation.
 #' @param seed An integer for random seed, default is 111.
 #' @importFrom quantreg rq.fit.lasso
-#' @importFrom glmnet glmnet
+#' @importFrom glmnet glmnet cv.glmnet
 #' @importFrom parallel makeCluster detectCores stopCluster
 #' @importFrom doSNOW registerDoSNOW
 #' @importFrom foreach foreach `%dopar%`
@@ -351,9 +331,9 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y_ori <- c(y_ori, y_aux_bd[[k]])
   }
   if (is.null(lambda1)) {
-    lambda1 <- tune_lasso(x_comb, y_comb, nbar = nbar, nfolds = 10)
+    lambda1 <- cv.glmnet(x_comb, y_comb, alpha = 1, intercept = F,
+                         standardize = F)$lambda.min
   }
-  print(lambda1)
   w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
                   standardize = F)$beta
   # Step 3:
@@ -389,7 +369,7 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
 #' @param ncore The integer, the number of cores used for parallel computation.
 #' @param seed An integer for random seed, default is 111.
 #' @importFrom quantreg rq.fit.lasso
-#' @importFrom glmnet glmnet
+#' @importFrom glmnet glmnet cv.glmnet
 #' @importFrom parallel makeCluster detectCores stopCluster
 #' @importFrom doSNOW registerDoSNOW
 #' @importFrom foreach foreach `%dopar%`
@@ -487,7 +467,8 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y_ori <- c(y_ori, y_aux_bd[[k]])
   }
   if (is.null(lambda1)) {
-    lambda1 <- tune_lasso(x_comb, y_comb, nbar = nbar, nfolds = 10)
+    lambda1 <- cv.glmnet(x_comb, y_comb, alpha = 1, intercept = F,
+                         standardize = F)$lambda.min
   }
   w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
                   standardize = F)$beta
