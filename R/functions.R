@@ -250,7 +250,6 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   set.seed(seed)
   nt <- nrow(x_target)
-  nbar <- max(sapply(1:length(x_aux_bd), function(h) {nrow(x_aux_bd[[h]])}))
   # Step 1:
   # For target
   beta_target_hat <- rq.fit.lasso(x_target, y_target, tau = 0.8)$coefficients
@@ -326,13 +325,9 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   for (k in 1:length(x_aux_bd)) {
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
-  y_ori <- y_target
-  for (k in 1:length(x_aux_bd)) {
-    y_ori <- c(y_ori, y_aux_bd[[k]])
-  }
   if (is.null(lambda1)) {
     lambda1 <- cv.glmnet(x_comb, y_comb, alpha = 1, intercept = F,
-                         standardize = F)$lambda.min
+                         standardize = F)$lambda.1se
   }
   w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
                   standardize = F)$beta
@@ -387,7 +382,6 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   set.seed(seed)
   nt <- nrow(x_target)
-  nbar <- max(sapply(1:length(x_aux_bd), function(h) {nrow(x_aux_bd[[h]])}))
   # Step 1:
   # For target
   beta_target_hat <- rq.fit.lasso(x_target, y_target,
@@ -462,13 +456,9 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   for (k in 1:length(x_aux_bd)) {
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
-  y_ori <- y_target
-  for (k in 1:length(x_aux_bd)) {
-    y_ori <- c(y_ori, y_aux_bd[[k]])
-  }
   if (is.null(lambda1)) {
     lambda1 <- cv.glmnet(x_comb, y_comb, alpha = 1, intercept = F,
-                         standardize = F)$lambda.min
+                         standardize = F)$lambda.1se
   }
   w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
                   standardize = F)$beta
