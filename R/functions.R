@@ -7,8 +7,7 @@
 #' @param u Input scalar. The quantile level.
 #' @return A scalar. The quantile loss based on the given inputs.
 cdloss <- function(x, y, beta, u) {
-  return(sum((y - x %*% beta) * (u - ifelse(y - x %*% beta <= 0, 1, 0))) /
-         nrow(x))
+  return(mean((y - x %*% beta) * (u - ifelse(y - x %*% beta <= 0, 1, 0))))
 }
 
 
@@ -43,30 +42,32 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
                             seed = 111){
   set.seed(seed)
   # Construct beta
-  beta_0 <- rep(0, p)
-  beta_0[1:s] <- 1
+  beta_0 <- rep(0, p + 1)
+  beta_0[2:(s + 1)] <- 1
   assign('beta_0', beta_0, envir = .GlobalEnv)
   A_index <- c(rep(1, An), rep(0, M - An))
   for (i in 1:length(A_index)) {
     if (A_index[i] == 1) {
-      Hk <- sample(seq(from = 1, to = p, by = 1), size = p / 2, replace = F)
+      Hk <- sample(seq(from = 1, to = p, by = 1), size = p / 2,
+                   replace = FALSE)
       ksi <- rLaplace(n = length(Hk), mu = 0, b = 2 * d / p)
       ksi_add <- rep(0, p)
       ksi_add[Hk] <- ksi
       nam <- paste0("beta_", i)
-      assign(nam, beta_0 + ksi_add, envir = .GlobalEnv)
+      assign(nam, beta_0 + c(0, ksi_add), envir = .GlobalEnv)
     } else{
-      Hk <- sample(seq(from = 1, to = p, by = 1), size = p / 2, replace = F)
-      ksi <- rLaplace(n = length(Hk), mu = 0, b = 140 / p)
+      Hk <- sample(seq(from = 1, to = p, by = 1), size = p / 2,
+                   replace = FALSE)
+      ksi <- rLaplace(n = length(Hk), mu = 0, b = 2 * 70 / p)
       ksi_add <- rep(0, p)
       ksi_add[Hk] <- ksi
       nam <- paste0("beta_", i)
-      assign(nam, beta_0 + ksi_add, envir = .GlobalEnv)
+      assign(nam, beta_0 + c(0, ksi_add), envir = .GlobalEnv)
     }
   }
   # Construct covariates:
   if (cov_type == 'auto') {
-    sigma <- matrix(rep(0, p * p), nrow = p, byrow = T)
+    sigma <- matrix(rep(0, p * p), nrow = p, byrow = TRUE)
     for (i in 1:p) {
       for (j in 1:i) {
         sigma[i, j] <- 0.5 ^ abs(i - j)
@@ -76,10 +77,13 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
     for (i in 0:M) {
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
-                            tol = 1e-10),envir = .GlobalEnv)
+        assign(nam, cbind(rep(1, floor(n / 0.8) + 1),
+                          mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+                          tol = 1e-10))
+               ,envir = .GlobalEnv)
       } else {
-        assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
+        assign(nam, cbind(rep(1, n),
+                          mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10)),
                envir = .GlobalEnv)
       }
       assign(paste0("sigma_", i), sigma)
@@ -94,10 +98,13 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
       }
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
-                            tol = 1e-10),envir = .GlobalEnv)
+        assign(nam, cbind(rep(1, floor(n / 0.8) + 1),
+                          mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+                                  tol = 1e-10))
+               ,envir = .GlobalEnv)
       } else{
-        assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
+        assign(nam, cbind(rep(1, n),
+                          mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10)),
                envir = .GlobalEnv)
       }
       assign(paste0("sigma_", i), sigma)
@@ -107,48 +114,47 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
   }
   # Construct response:
   if (res_type == 'normal'){
-    assign("y_0", get(paste0('X_', 0)) %*% get(paste0('beta_', 0)) +
+    btild0 <- get(paste0('beta_', 0))
+    bt0 <- btild0[2:length(btild0)]
+    assign("y_0", get(paste0('X_', 0)) %*% btild0 +
           rnorm(n = floor(n / 0.8) + 1,
-                qnorm(0.2, mean = 0, sd = t(get(paste0('beta_', 0))) %*%
-                      get(paste0('sigma_', 0)) %*% get(paste0('beta_', 0)) /
-                      eta),
-                sd = t(get(paste0('beta_', 0))) %*%
-                  get(paste0('sigma_', 0)) %*% get(paste0('beta_', 0)) / eta),
+                qnorm(0.2, mean = 0, sd = t(bt0) %*%
+                      get(paste0('sigma_', 0)) %*% bt0 / eta),
+                sd = t(bt0) %*% get(paste0('sigma_', 0)) %*% bt0 / eta),
           envir = .GlobalEnv)
     for (i in 1:M){
+      btildi <- get(paste0('beta_', i))
+      bti <- btildi[2:length(btildi)]
       nam <- paste0("y_", i)
-      assign(nam, get(paste0('X_', i)) %*% get(paste0('beta_', i)) +
+      assign(nam, get(paste0('X_', i)) %*% btildi +
             rnorm(n = n,
-                  qnorm(0.2, mean = 0, sd = t(get(paste0('beta_', i))) %*%
-                        get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
-                        eta),
-                  sd = t(get(paste0('beta_', i))) %*%
-                    get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
-                    eta),
+                  qnorm(0.2, mean = 0, sd = t(bti) %*%
+                        get(paste0('sigma_', i)) %*% bti / eta),
+                  sd = t(bti) %*% get(paste0('sigma_', i)) %*% bti / eta),
             envir = .GlobalEnv)
     }
   } else if (res_type == 'cauchy'){
-    assign("y_0", get(paste0('X_', 0)) %*% get(paste0('beta_', 0)) +
+    btild0 <- get(paste0('beta_', 0))
+    bt0 <- btild0[2:length(btild0)]
+    assign("y_0", get(paste0('X_', 0)) %*% btild0 +
            rcauchy(n = floor(n / 0.8) + 1,
                   qcauchy(0.2, location = 0,
-                          scale =  t(get(paste0('beta_', 0))) %*%
-                            get(paste0('sigma_', 0)) %*%
-                            get(paste0('beta_', 0)) / eta),
-                  scale = t(get(paste0('beta_', 0))) %*%
-                    get(paste0('sigma_', 0)) %*% get(paste0('beta_', 0)) /
-                    eta),
+                          scale =  t(bt0) %*%
+                            get(paste0('sigma_', 0)) %*% bt0 / eta),
+                  scale = t(bt0) %*%
+                    get(paste0('sigma_', 0)) %*% bt0 / eta),
            envir = .GlobalEnv)
     for (i in 1:M) {
+      btildi <- get(paste0('beta_', i))
+      bti <- btildi[2:length(btildi)]
       nam <- paste0("y_", i)
-      assign(nam, get(paste0('X_', i)) %*% get(paste0('beta_', i)) +
+      assign(nam, get(paste0('X_', i)) %*% btildi +
              rcauchy(n = n,
                      qcauchy(0.2, location = 0,
-                     scale =  t(get(paste0('beta_', i))) %*%
-                       get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
-                       eta),
-                     scale = t(get(paste0('beta_', i))) %*%
-                       get(paste0('sigma_', i)) %*% get(paste0('beta_', i)) /
-                       eta),
+                     scale =  t(bti) %*%
+                       get(paste0('sigma_', i)) %*% bti / eta),
+                     scale = t(bti) %*%
+                       get(paste0('sigma_', i)) %*% bti / eta),
              envir = .GlobalEnv)
     }
   } else {
@@ -181,20 +187,21 @@ K <- function(x) {
 hchoose <- function(x, y, u) {
   n <- nrow(x)
   beta_hat <- quantreg::rq.fit.lasso(x, y, tau = u)$coefficients
-  shat <- sum(abs(beta_hat) > (max(abs(beta_hat)) * 1e-10))
-  clist <- c(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10)
+  shat <- sum(abs(beta_hat) > (max(abs(beta_hat[2:length(beta_hat)])) * 1e-10))
+  clist <- exp(seq(-5,3,length.out=25))
   hlist <- sapply(clist, function(x) {
-    sqrt(shat * log(n) / n) + x * shat ^ (3 / 2) * log(n) / n
+     sqrt(shat * log(n) / n) + x * shat ^ (3 / 2) * log(n) / n
   })
   qlist <- sapply(hlist, function(h) {
-    f_hat <- sum(apply(((y - x %*% beta_hat) / h), 1, K)) / (n * h)
+    f_hat <- mean(apply(((y - x %*% beta_hat) / h), 1, K)) / h
     if (f_hat != 0) {
       y_tild <- x %*% beta_hat - f_hat ^ -1 * (ifelse(y - x %*% beta_hat <= 0,
                                                       1, 0) - u)
-      cvfit <- cv.glmnet(x = x, y = y_tild, alpha = 1, intercept = F,
-                         standardize = F)
-      b_hat <- glmnet(x, y_tild, lambda = cvfit$lambda.min, intercept = F,
-                      standardize = F)$beta
+      cvfit <- cv.glmnet(x = x[, 2:ncol(x)], y = y_tild, alpha = 1,
+                         standardize = FALSE, maxit = 1e6)
+      bfit <- glmnet(x[, 2:ncol(x)], y_tild, lambda = cvfit$lambda.min,
+                     standardize = FALSE)
+      b_hat <- rbind(bfit$a0, bfit$beta)
       return(cdloss(x = x, y = y, beta = b_hat, u = u))
     } else{
       return(1e8)
@@ -252,15 +259,16 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   nt <- nrow(x_target)
   # Step 1:
   # For target
-  beta_target_hat <- rq.fit.lasso(x_target, y_target, tau = 0.8)$coefficients
+  beta_target_hat <- rq.fit.lasso(x_target, y_target,
+                                  tau = u_target)$coefficients
   # CV for h selection if NULL
   if (is.null(h)) {
     h_target <- hchoose(x_target, y_target, u_target)
   } else{
     h_target <- h[1]
   }
-  f_target_hat <- sum(apply(((y_target - x_target %*% beta_target_hat) /
-                      h_target), 1, K)) / (nrow(x_target) * h_target)
+  f_target_hat <- mean(apply(((y_target - x_target %*% beta_target_hat) /
+                      h_target), 1, K)) / h_target
   y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
     (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
   # For source
@@ -281,14 +289,14 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       u_source <- u_aux_bd[i]
       ns <- nrow(x_source)
       beta_aux_hat <- rq.fit.lasso(x_source, y_source,
-                                   tau = 0.8)$coefficients
+                                   tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
-                       h_source), 1, K)) / (ns * h_source)
+      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+                       h_source), 1, K)) / h_source
       list(x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
           (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) -
           u_source))
@@ -304,14 +312,14 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       u_source <- u_aux_bd[k]
       ns <- nrow(x_source)
       beta_aux_hat <- rq.fit.lasso(x_source, y_source,
-                                   tau = 0.8)$coefficients
+                                   tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
-                                h_source), 1, K)) / (ns * h_source)
+      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+                                 h_source), 1, K)) / h_source
       y_aux_tild_bd[[k]] <- x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
         (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source)
     }
@@ -326,18 +334,20 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
   if (is.null(lambda1)) {
-    lambda1 <- cv.glmnet(x_comb, y_comb, alpha = 1, intercept = F,
-                         standardize = F)$lambda.1se
+    lambda1 <- cv.glmnet(x_comb[, 2:ncol(x_comb)], y_comb, alpha = 1,
+                         standardize = FALSE)$lambda.min
   }
-  w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
-                  standardize = F)$beta
+  wfit <- glmnet(x_comb[, 2:ncol(x_comb)], y_comb, lambda = lambda1,
+                  standardize = FALSE, alpha = 1)
+  w_hat <- rbind(wfit$a0, wfit$beta)
   # Step 3:
   if (is.null(lambda2)) {
     lambda2 <- lambda1 * sqrt(nrow(x_comb) / nrow(x_target))
   }
-  print(lambda2)
-  delta_hat <- glmnet(x_target, y_target_tild - (x_target %*% w_hat),
-                      lambda = lambda2, intercept = F, standardize = F)$beta
+  deltafit <- glmnet(x_target[, 2:ncol(x_target)],
+                     y_target_tild - (x_target %*% w_hat),
+                     lambda = lambda2, standardize = FALSE, alpha = 1)
+  delta_hat <- rbind(deltafit$a0, deltafit$beta)
   return(w_hat + delta_hat)
 }
 
@@ -391,8 +401,8 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   } else{
     h_target <- h[1]
   }
-  f_target_hat <- sum(apply(((y_target - x_target %*% beta_target_hat) /
-                      h_target), 1, K)) / (nt * h_target)
+  f_target_hat <- mean(apply(((y_target - x_target %*% beta_target_hat) /
+                      h_target), 1, K)) / h_target
   y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
     (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
   # For source
@@ -413,14 +423,14 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       u_source <- u_aux_bd[i]
       ns <- nrow(x_source)
       beta_aux_hat <- rq.fit.lasso(x_source, y_source,
-                                   tau = 0.8)$coefficients
+                                   tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
-                       h_source), 1, K)) / (ns * h_source)
+      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+                       h_source), 1, K)) / h_source
       list(x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
           (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source))
     }
@@ -441,8 +451,8 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- sum(apply(((y_source - x_source %*% beta_aux_hat) /
-                       h_source), 1, K)) / (ns * h_source)
+      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+                       h_source), 1, K)) / h_source
       y_aux_tild_bd[[k]] <- x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
         (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source)
     }
@@ -457,11 +467,12 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
   if (is.null(lambda1)) {
-    lambda1 <- cv.glmnet(x_comb, y_comb, alpha = 1, intercept = F,
-                         standardize = F)$lambda.1se
+    lambda1 <- cv.glmnet(x_comb[, 2:ncol(x_comb)], y_comb, alpha = 1,
+                         standardize = FALSE)$lambda.min
   }
-  w_hat <- glmnet(x_comb, y_comb, lambda = lambda1, intercept = F,
-                  standardize = F)$beta
+  wfit <- glmnet(x_comb[, 2:ncol(x_comb)], y_comb, lambda = lambda1,
+                  standardize = FALSE, alpha = 1)
+  w_hat <- rbind(wfit$a0, wfit$beta)
   return(w_hat)
 }
 
@@ -484,8 +495,7 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
   if (is.null(hic)) {
     hic <- hchoose(X_measure, y_measure, u_target)
   }
-  f_hat <- sum(apply((y_measure - X_measure %*% betaic / hic), 1, K)) /
-    (round(nrow(X_measure)) * hic)
+  f_hat <- mean(apply((y_measure - X_measure %*% betaic / hic), 1, K)) / hic
   y_measure_tilde <- X_measure %*% betaic - f_hat ^ (-1) *
     (ifelse(y_measure - X_measure %*% betaic <= 0, 1, 0) - u_target)
   return(mean((y_measure_tilde - X_measure %*% betahat) ^ 2))
@@ -536,17 +546,17 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
     target_index <- 1:nrow(x_target)
     X0_index <- sample(target_index, size = round(nrow(x_target) / 2),
-                       replace = F)
+                       replace = FALSE)
     X0_cut1 <- x_target[X0_index,]
     X0_cut2 <- x_target[-X0_index,]
     y0_cut1 <- y_target[X0_index]
     y0_cut2 <- y_target[-X0_index]
     # CV1:
     # Step 1.2: train sparse quantile regression for I for X0, y0:
-    beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau=0.8)$coefficients
+    beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau = u_target)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     # source:
-    if (parallel == F){
+    if (parallel == FALSE){
       for (k in 1:length(x_aux_bd)) {
         if (is.null(h)) {
           assign(paste0(paste0('beta_', k), '_hat'),
@@ -569,7 +579,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       opts <- list(progress = progress)
       betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
                              .packages = c('quantreg', 'glmnet'),
-                             .inorder = T) %dopar% {
+                             .inorder = TRUE) %dopar% {
         if (is.null(h)) {
           rq.fusion(X0_cut1, y0_cut1, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
                     u_target, c(u_aux_bd[i]), lambda1 = lambda1)
@@ -586,7 +596,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       }
     }
     # Step 2: Calculate the loss based on the loss function:
-    beta_0_hatic <- rq.fit.lasso(X0_cut2, y0_cut2, tau = 0.8)$coefficients
+    beta_0_hatic <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u_target)$coefficients
     #hic <- hchoose(X0_cut2, y0_cut2, u_target)
     hic <- h[1]
     for (k in c(0, (1:length(x_aux_bd)))) {
@@ -597,11 +607,11 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     # Step 3: Get informative sets:
     # Step 3.1 true
     index_true1 <- c()
-    if (verbose == T) {
+    if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
     }
     for (k in 1:length(x_aux_bd)) {
-      if (verbose == T) {
+      if (verbose == TRUE) {
         print(get(paste0('Q', k)))
       }
       if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
@@ -617,17 +627,17 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       for (k in 1:length(x_aux_bd)) {
         Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
       }
-      index_psd1 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+      index_psd1 <- match(head(sort(Q_K_vec, decreasing = FALSE), info_num),
                           Q_K_vec)
     } else{
       index_psd1 <- c()
     }
     # CV2
     # Step 1.2: train sparse quantile regression for I for X0, y0:
-    beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = 0.8)$coefficients
+    beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u_target)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     # source:
-    if (parallel == F){
+    if (parallel == FALSE){
       for (k in 1:length(x_aux_bd)) {
         if (is.null(h)) {
           assign(paste0(paste0('beta_', k), '_hat'),
@@ -650,7 +660,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       opts <- list(progress = progress)
       betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
                              .packages = c('quantreg', 'glmnet'),
-                             .inorder = T) %dopar% {
+                             .inorder = TRUE) %dopar% {
         if (is.null(h)) {
           rq.fusion(X0_cut2, y0_cut2, list(x_aux_bd[[i]]), list(y_aux_bd[[i]]),
                     u_target, c(u_aux_bd[i]), lambda1 = lambda1)
@@ -667,7 +677,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       }
     }
     # Step 2: Calculate the loss based on the loss function:
-    beta_0_hatic <- rq.fit.lasso(X0_cut1, y0_cut1, tau = 0.8)$coefficients
+    beta_0_hatic <- rq.fit.lasso(X0_cut1, y0_cut1, tau = u_target)$coefficients
     #hic <- hchoose(X0_cut1,y0_cut1,u_target)
     hic <- h[1]
     for (k in c(0, (1:length(x_aux_bd)))) {
@@ -678,11 +688,11 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     # Step 3: Get informative sets:
     # Step 3.1 true
     index_true2 <- c()
-    if (verbose == T) {
+    if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
     }
     for (k in 1:length(x_aux_bd)) {
-      if (verbose == T) {
+      if (verbose == TRUE) {
         print(get(paste0('Q', k)))
       }
       if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
@@ -698,7 +708,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       for (k in 1:length(x_aux_bd)) {
         Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
       }
-      index_psd2 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+      index_psd2 <- match(head(sort(Q_K_vec, decreasing = FALSE), info_num),
                           Q_K_vec)
     } else{
       index_psd2 <- c()
@@ -818,7 +828,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
     target_index <- 1:nrow(x_target)
     X0_index <- sample(target_index, size = round(nrow(x_target) / 2),
-                       replace = F)
+                       replace = FALSE)
     X0_cut1 <- x_target[X0_index,]
     X0_cut2 <- x_target[-X0_index,]
     y0_cut1 <- y_target[X0_index]
@@ -828,7 +838,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau=u)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     # source:
-    if (parallel == F){
+    if (parallel == FALSE){
       for (k in 1:length(x_aux_bd)) {
         assign(paste0(paste0('beta_', k), '_hat'),
                rq.fusion.pool(X0_cut1, y0_cut1, list(x_aux_bd[[k]]),
@@ -842,7 +852,8 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
       progress <- function(n) setTxtProgressBar(pb, n)
       opts <- list(progress = progress)
       betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
-                             .packages = c('quantreg'), .inorder = T) %dopar% {
+                             .packages = c('quantreg'),
+                             .inorder = TRUE) %dopar% {
         rq.fusion.pool(X0_cut1, y0_cut1, list(x_aux_bd[[i]]),
                        list(y_aux_bd[[i]]),u)
       }
@@ -861,11 +872,11 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     # Step 3: Get informative sets:
     # Step 3.1 true
     index_true1 <- c()
-    if (verbose == T) {
+    if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
     }
     for (k in 1:length(x_aux_bd)) {
-      if (verbose == T) {
+      if (verbose == TRUE) {
         print(get(paste0('Q', k)))
       }
       if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
@@ -881,7 +892,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
       for (k in 1:length(x_aux_bd)) {
         Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
       }
-      index_psd1 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+      index_psd1 <- match(head(sort(Q_K_vec, decreasing = FALSE), info_num),
                           Q_K_vec)
     } else{
       index_psd1 <- c()
@@ -890,7 +901,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     # Step 1.2: train sparse quantile regression for I for X0, y0:
     beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
-    if (parallel == F){
+    if (parallel == FALSE){
       for (k in 1:length(x_aux_bd)) {
         assign(paste0(paste0('beta_', k), '_hat'),
                rq.fusion.pool(X0_cut2, y0_cut2, list(x_aux_bd[[k]]),
@@ -904,7 +915,8 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
       progress <- function(n) setTxtProgressBar(pb, n)
       opts <- list(progress = progress)
       betasources <- foreach(i = 1:M, .options.snow = opts, .combine = cbind,
-                             .packages = c('quantreg'), .inorder = T) %dopar% {
+                             .packages = c('quantreg'),
+                             .inorder = TRUE) %dopar% {
         rq.fusion.pool(X0_cut2, y0_cut2, list(x_aux_bd[[i]]),
                        list(y_aux_bd[[i]]),u)
       }
@@ -923,11 +935,11 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     # Step 3: Get informative sets:
     # Step 3.1 true
     index_true2 <- c()
-    if (verbose == T) {
+    if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
     }
     for (k in 1:length(x_aux_bd)) {
-      if (verbose == T) {
+      if (verbose == TRUE) {
         print(get(paste0('Q', k)))
       }
       if (get(paste0('Q', k)) <= (1 + epsilon) * get(paste0('Q', 0))) {
@@ -943,7 +955,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
       for (k in 1:length(x_aux_bd)) {
         Q_K_vec <- c(Q_K_vec, get(paste0('Q', k)))
       }
-      index_psd2 <- match(head(sort(Q_K_vec, decreasing = F), info_num),
+      index_psd2 <- match(head(sort(Q_K_vec, decreasing = FALSE), info_num),
                           Q_K_vec)
     } else{
       index_psd2 <- c()
