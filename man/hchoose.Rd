@@ -4,7 +4,16 @@
 \alias{hchoose}
 \title{Select bandwidth h by cross validation}
 \usage{
-hchoose(x, y, u)
+hchoose(
+  x,
+  y,
+  u,
+  lowc = 0.1,
+  upc = 10,
+  thresh = 1e-10,
+  length.out = 25,
+  maxit = 1e+06
+)
 }
 \arguments{
 \item{x}{design matrix which is in size of n*p.}
@@ -12,6 +21,21 @@ hchoose(x, y, u)
 \item{y}{response vector.}
 
 \item{u}{A scalar for the quantile level.}
+
+\item{lowc}{Constant used for calculating lower bound of bandwidth according
+to our paper, default is 0.1.}
+
+\item{upc}{Constant used for calculating upper bound of bandwidth according
+to our paper, default is 10.}
+
+\item{thresh}{The threshold used to determine the sparsity of initial,
+default is 1e-10.}
+
+\item{length.out}{The number of grid search points for searching the best
+bandwidth, default is 25.}
+
+\item{maxit}{The maximum iteration number for lasso problem used in grid
+search, default is 1e6.}
 }
 \description{
 Select bandwidth h by cross validation

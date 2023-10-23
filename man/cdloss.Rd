@@ -8,9 +8,9 @@ quantile level}
 cdloss(x, y, beta, u)
 }
 \arguments{
-\item{x}{Input matrix. The convariates of samples.}
+\item{x}{Input design matrix. The convariates of samples.}
 
-\item{y}{Input vector. The responses of samples.}
+\item{y}{Input response vector. The responses of samples.}
 
 \item{beta}{Input vector. The coefficient.}
 

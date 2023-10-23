@@ -1,13 +1,15 @@
 #' Calculate the quantile loss based on the given samples, coefficient, and the
 #' quantile level
 #' @export
-#' @param x Input matrix. The convariates of samples.
-#' @param y Input vector. The responses of samples.
+#' @param x Input design matrix. The convariates of samples.
+#' @param y Input response vector. The responses of samples.
 #' @param beta Input vector. The coefficient.
 #' @param u Input scalar. The quantile level.
 #' @return A scalar. The quantile loss based on the given inputs.
 cdloss <- function(x, y, beta, u) {
-  return(mean((y - x %*% beta) * (u - ifelse(y - x %*% beta <= 0, 1, 0))))
+  xtilde <- cbind(rep(1, nrow(x)), x)
+  return(mean((y - xtilde %*% beta) * (u - ifelse(y - xtilde %*% beta <= 0,
+                                                  1, 0))))
 }
 
 
@@ -182,24 +184,36 @@ K <- function(x) {
 #' @param x design matrix which is in size of n*p.
 #' @param y response vector.
 #' @param u A scalar for the quantile level.
+#' @param lowc Constant used for calculating lower bound of bandwidth according
+#' to our paper, default is 0.1.
+#' @param upc Constant used for calculating upper bound of bandwidth according
+#' to our paper, default is 10.
+#' @param thresh The threshold used to determine the sparsity of initial,
+#' default is 1e-10.
+#' @param length.out The number of grid search points for searching the best
+#' bandwidth, default is 25.
+#' @param maxit The maximum iteration number for lasso problem used in grid
+#' search, default is 1e6.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom glmnet cv.glmnet glmnet
-hchoose <- function(x, y, u) {
+hchoose <- function(x, y, u, lowc = 0.1, upc = 10, thresh = 1e-10,
+                    length.out = 25, maxit = 1e6) {
   n <- nrow(x)
-  beta_hat <- quantreg::rq.fit.lasso(x, y, tau = u)$coefficients
-  shat <- sum(abs(beta_hat) > (max(abs(beta_hat[2:length(beta_hat)])) * 1e-10))
-  clist <- exp(seq(-5,3,length.out=25))
-  hlist <- sapply(clist, function(x) {
-     sqrt(shat * log(n) / n) + x * shat ^ (3 / 2) * log(n) / n
-  })
+  xtilde <- cbind(rep(1, n), x)
+  beta_hat <- quantreg::rq.fit.lasso(xtilde, y, tau = u)$coefficients
+  shat <- sum(abs(beta_hat) > (max(abs(beta_hat[2:length(beta_hat)]))
+                               * thresh))
+  lowb <- lowc * (sqrt(shat * log(n) / n) + lowc * shat ^ (3 / 2) * log(n) / n)
+  upb <- upc * (sqrt(shat * log(n) / n) + upc * shat ^ (3 / 2) * log(n) / n)
+  hlist <- seq(from = lowb, to = upb, length.out = length.out)
   qlist <- sapply(hlist, function(h) {
-    f_hat <- mean(apply(((y - x %*% beta_hat) / h), 1, K)) / h
+    f_hat <- mean(apply(((y - xtilde %*% beta_hat) / h), 1, K)) / h
     if (f_hat != 0) {
-      y_tild <- x %*% beta_hat - f_hat ^ -1 * (ifelse(y - x %*% beta_hat <= 0,
-                                                      1, 0) - u)
-      cvfit <- cv.glmnet(x = x[, 2:ncol(x)], y = y_tild, alpha = 1,
-                         standardize = FALSE, maxit = 1e6)
-      bfit <- glmnet(x[, 2:ncol(x)], y_tild, lambda = cvfit$lambda.min,
+      y_tild <- xtilde %*% beta_hat - f_hat ^ -1 *
+        (ifelse(y - xtilde %*% beta_hat <= 0, 1, 0) - u)
+      cvfit <- cv.glmnet(x = x, y = y_tild, alpha = 1,
+                         standardize = FALSE, maxit = maxit)
+      bfit <- glmnet(x = x, y = y_tild, lambda = cvfit$lambda.min,
                      standardize = FALSE)
       b_hat <- rbind(bfit$a0, bfit$beta)
       return(cdloss(x = x, y = y, beta = b_hat, u = u))
@@ -207,8 +221,7 @@ hchoose <- function(x, y, u) {
       return(1e8)
     }
   })
-  h <- sqrt(shat * log(n) / n) + clist[which.min(qlist)] * shat ^ (3 / 2) *
-    log(n) / n
+  h <- hlist[which.min(qlist)]
   return(h)
 }
 
@@ -259,7 +272,8 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   nt <- nrow(x_target)
   # Step 1:
   # For target
-  beta_target_hat <- rq.fit.lasso(x_target, y_target,
+  x_target_tilde <- cbind(rep(1, nt), x_target)
+  beta_target_hat <- rq.fit.lasso(x_target_tilde, y_target,
                                   tau = u_target)$coefficients
   # CV for h selection if NULL
   if (is.null(h)) {
@@ -267,10 +281,11 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   } else{
     h_target <- h[1]
   }
-  f_target_hat <- mean(apply(((y_target - x_target %*% beta_target_hat) /
+  f_target_hat <- mean(apply(((y_target - x_target_tilde %*% beta_target_hat) /
                       h_target), 1, K)) / h_target
-  y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
-    (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
+  y_target_tild <- x_target_tilde %*% beta_target_hat - f_target_hat ^ -1 *
+    (ifelse(y_target - x_target_tilde %*% beta_target_hat <= 0, 1, 0) -
+       u_target)
   # For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
@@ -285,21 +300,22 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                              .inorder = TRUE) %dopar% {
       set.seed(seed)
       x_source <- x_aux_bd[[i]]
+      ns <- nrow(x_source)
+      x_source_tilde <- cbind(rep(1, ns), x_source)
       y_source <- y_aux_bd[[i]]
       u_source <- u_aux_bd[i]
-      ns <- nrow(x_source)
-      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+      beta_aux_hat <- rq.fit.lasso(x_source_tilde, y_source,
                                    tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+      f_aux_hat <- mean(apply(((y_source - x_source_tilde %*% beta_aux_hat) /
                        h_source), 1, K)) / h_source
-      list(x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
-          (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) -
-          u_source))
+      list(x_source_tilde %*% beta_aux_hat - f_aux_hat ^ -1 *
+          (ifelse(y_source - x_source_tilde %*% beta_aux_hat <= 0, 1, 0) -
+             u_source))
     }
     close(pb)
     stopCluster(cl)
@@ -308,20 +324,22 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     for (k in 1:length(x_aux_bd)) {
       set.seed(seed)
       x_source <- x_aux_bd[[k]]
+      ns <- nrow(x_source)
+      x_source_tilde <- cbind(rep(1, ns), x_source)
       y_source <- y_aux_bd[[k]]
       u_source <- u_aux_bd[k]
-      ns <- nrow(x_source)
-      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+      beta_aux_hat <- rq.fit.lasso(x_source_tilde, y_source,
                                    tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+      f_aux_hat <- mean(apply(((y_source - x_source_tilde %*% beta_aux_hat) /
                                  h_source), 1, K)) / h_source
-      y_aux_tild_bd[[k]] <- x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
-        (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source)
+      y_aux_tild_bd[[k]] <- x_source_tilde %*% beta_aux_hat - f_aux_hat ^ -1 *
+        (ifelse(y_source - x_source_tilde %*% beta_aux_hat <= 0, 1, 0) -
+           u_source)
     }
   }
   # Step 2:
@@ -334,18 +352,17 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
   if (is.null(lambda1)) {
-    lambda1 <- cv.glmnet(x_comb[, 2:ncol(x_comb)], y_comb, alpha = 1,
+    lambda1 <- cv.glmnet(x = x_comb, y = y_comb, alpha = 1,
                          standardize = FALSE)$lambda.min
   }
-  wfit <- glmnet(x_comb[, 2:ncol(x_comb)], y_comb, lambda = lambda1,
+  wfit <- glmnet(x = x_comb, y = y_comb, lambda = lambda1,
                   standardize = FALSE, alpha = 1)
   w_hat <- rbind(wfit$a0, wfit$beta)
   # Step 3:
   if (is.null(lambda2)) {
     lambda2 <- lambda1 * sqrt(nrow(x_comb) / nrow(x_target))
   }
-  deltafit <- glmnet(x_target[, 2:ncol(x_target)],
-                     y_target_tild - (x_target %*% w_hat),
+  deltafit <- glmnet(x = x_target, y = y_target_tild - (x_target %*% w_hat),
                      lambda = lambda2, standardize = FALSE, alpha = 1)
   delta_hat <- rbind(deltafit$a0, deltafit$beta)
   return(w_hat + delta_hat)
@@ -394,17 +411,19 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   nt <- nrow(x_target)
   # Step 1:
   # For target
-  beta_target_hat <- rq.fit.lasso(x_target, y_target,
+  x_target_tilde <- cbind(rep(1, nt), x_target)
+  beta_target_hat <- rq.fit.lasso(x_target_tilde, y_target,
                                   tau = u_target)$coefficients
   if (is.null(h)) {
     h_target <- hchoose(x_target, y_target, u_target)
   } else{
     h_target <- h[1]
   }
-  f_target_hat <- mean(apply(((y_target - x_target %*% beta_target_hat) /
+  f_target_hat <- mean(apply(((y_target - x_target_tilde %*% beta_target_hat) /
                       h_target), 1, K)) / h_target
-  y_target_tild <- x_target %*% beta_target_hat - f_target_hat ^ -1 *
-    (ifelse(y_target - x_target %*% beta_target_hat <= 0, 1, 0) - u_target)
+  y_target_tild <- x_target_tilde %*% beta_target_hat - f_target_hat ^ -1 *
+    (ifelse(y_target - x_target_tilde %*% beta_target_hat <= 0, 1, 0) -
+       u_target)
   # For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
@@ -419,20 +438,22 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
                              .inorder = TRUE) %dopar% {
       set.seed(seed)
       x_source <- x_aux_bd[[i]]
+      ns <- nrow(x_source)
+      x_source_tilde <- cbind(rep(1, ns), x_source)
       y_source <- y_aux_bd[[i]]
       u_source <- u_aux_bd[i]
-      ns <- nrow(x_source)
-      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+      beta_aux_hat <- rq.fit.lasso(x_source_tilde, y_source,
                                    tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+      f_aux_hat <- mean(apply(((y_source - x_source_tilde %*% beta_aux_hat) /
                        h_source), 1, K)) / h_source
-      list(x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
-          (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source))
+      list(x_source_tilde %*% beta_aux_hat - f_aux_hat ^ -1 *
+          (ifelse(y_source - x_source_tilde %*% beta_aux_hat <= 0, 1, 0) -
+             u_source))
     }
     close(pb)
     stopCluster(cl)
@@ -441,20 +462,22 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     for (k in 1:length(x_aux_bd)) {
       set.seed(seed)
       x_source <- x_aux_bd[[k]]
+      ns <- nrow(x_source)
+      x_source_tilde <- cbind(rep(1, ns), x_source)
       y_source <- y_aux_bd[[k]]
       u_source <- u_aux_bd[k]
-      ns <- nrow(x_source)
-      beta_aux_hat <- rq.fit.lasso(x_source, y_source,
+      beta_aux_hat <- rq.fit.lasso(x_source_tilde, y_source,
                                    tau = u_source)$coefficients
       if (is.null(h)) {
         h_source <- hchoose(x_source, y_source, u_source)
       } else{
         h_source <- h[k + 1]
       }
-      f_aux_hat <- mean(apply(((y_source - x_source %*% beta_aux_hat) /
+      f_aux_hat <- mean(apply(((y_source - x_source_tilde %*% beta_aux_hat) /
                        h_source), 1, K)) / h_source
-      y_aux_tild_bd[[k]] <- x_source %*% beta_aux_hat - f_aux_hat ^ -1 *
-        (ifelse(y_source - x_source %*% beta_aux_hat <= 0, 1, 0) - u_source)
+      y_aux_tild_bd[[k]] <- x_source_tilde %*% beta_aux_hat - f_aux_hat ^ -1 *
+        (ifelse(y_source - x_source_tilde %*% beta_aux_hat <= 0, 1, 0) -
+           u_source)
     }
   }
   # Step 2:
@@ -467,10 +490,10 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y_comb <- c(y_comb, y_aux_tild_bd[[k]])
   }
   if (is.null(lambda1)) {
-    lambda1 <- cv.glmnet(x_comb[, 2:ncol(x_comb)], y_comb, alpha = 1,
+    lambda1 <- cv.glmnet(x = x_comb, y = y_comb, alpha = 1,
                          standardize = FALSE)$lambda.min
   }
-  wfit <- glmnet(x_comb[, 2:ncol(x_comb)], y_comb, lambda = lambda1,
+  wfit <- glmnet(x = x_comb, y = y_comb, lambda = lambda1,
                   standardize = FALSE, alpha = 1)
   w_hat <- rbind(wfit$a0, wfit$beta)
   return(w_hat)
@@ -495,10 +518,12 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
   if (is.null(hic)) {
     hic <- hchoose(X_measure, y_measure, u_target)
   }
-  f_hat <- mean(apply((y_measure - X_measure %*% betaic / hic), 1, K)) / hic
-  y_measure_tilde <- X_measure %*% betaic - f_hat ^ (-1) *
-    (ifelse(y_measure - X_measure %*% betaic <= 0, 1, 0) - u_target)
-  return(mean((y_measure_tilde - X_measure %*% betahat) ^ 2))
+  X_measure_tide <- cbind(rep(1, nrow(X_measure_tide)), X_measure_tide)
+  f_hat <- mean(apply((y_measure - X_measure_tide %*% betaic / hic), 1, K)) /
+    hic
+  y_measure_tilde <- X_measure_tide %*% betaic - f_hat ^ (-1) *
+    (ifelse(y_measure - X_measure_tide %*% betaic <= 0, 1, 0) - u_target)
+  return(mean((y_measure_tilde - X_measure_tide %*% betahat) ^ 2))
 }
 
 #' Main function for informative sources detection among all dataset
@@ -552,8 +577,10 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     y0_cut1 <- y_target[X0_index]
     y0_cut2 <- y_target[-X0_index]
     # CV1:
+    X0_cut1_tilde <- cbind(rep(1, nrow(X0_cut1)), X0_cut1)
     # Step 1.2: train sparse quantile regression for I for X0, y0:
-    beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau = u_target)$coefficients
+    beta_0_hat <- rq.fit.lasso(X0_cut1_tilde, y0_cut1,
+                               tau = u_target)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     # source:
     if (parallel == FALSE){
@@ -596,7 +623,9 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       }
     }
     # Step 2: Calculate the loss based on the loss function:
-    beta_0_hatic <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u_target)$coefficients
+    X0_cut2_tilde <- cbind(rep(1, nrow(X0_cut2)), X0_cut2)
+    beta_0_hatic <- rq.fit.lasso(X0_cut2_tilde, y0_cut2,
+                                 tau = u_target)$coefficients
     #hic <- hchoose(X0_cut2, y0_cut2, u_target)
     hic <- h[1]
     for (k in c(0, (1:length(x_aux_bd)))) {
@@ -634,7 +663,8 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
     }
     # CV2
     # Step 1.2: train sparse quantile regression for I for X0, y0:
-    beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u_target)$coefficients
+    beta_0_hat <- rq.fit.lasso(X0_cut2_tilde, y0_cut2,
+                               tau = u_target)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     # source:
     if (parallel == FALSE){
@@ -677,7 +707,8 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       }
     }
     # Step 2: Calculate the loss based on the loss function:
-    beta_0_hatic <- rq.fit.lasso(X0_cut1, y0_cut1, tau = u_target)$coefficients
+    beta_0_hatic <- rq.fit.lasso(X0_cut1_tilde, y0_cut1,
+                                 tau = u_target)$coefficients
     #hic <- hchoose(X0_cut1,y0_cut1,u_target)
     hic <- h[1]
     for (k in c(0, (1:length(x_aux_bd)))) {
@@ -740,18 +771,20 @@ rq.transfer.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u){
     }
   }
   # fusion
+  x_target_tilde <- cbind(rep(1, nrow(x_target)), x_target)
   x_comb <- x_target
   for (k in 1:length(x_aux_bd)){
     x_comb <- rbind(x_comb, x_aux_bd[[k]])
   }
+  x_comb_tilde <- cbind(rep(1, nrow(x_comb)), x_comb)
   y_comb <- y_target
   for (k in 1:length(x_aux_bd)){
     y_comb <- c(y_comb, y_aux_bd[[k]])
   }
-  beta_fusion <- rq.fit.lasso(x_comb, y_comb, tau = u)$coefficients
+  beta_fusion <- rq.fit.lasso(x_comb_tilde, y_comb, tau = u)$coefficients
   # debias
-  beta_db <- rq.fit.lasso(x_target,
-                          y_target - (x_target %*% beta_fusion),
+  beta_db <- rq.fit.lasso(x_target_tilde,
+                          y_target - (x_target_tilde %*% beta_fusion),
                           tau = u)$coefficients
   return(beta_fusion + beta_db)
 }
@@ -782,11 +815,12 @@ rq.fusion.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u) {
   for (k in 1:length(x_aux_bd)){
     x_comb <- rbind(x_comb, x_aux_bd[[k]])
   }
+  x_comb_tilde <- cbind(rep(1, nrow(x_comb)), x_comb)
   y_comb <- y_target
   for (k in 1:length(x_aux_bd)){
     y_comb <- c(y_comb, y_aux_bd[[k]])
   }
-  beta_fusion <- rq.fit.lasso(x_comb, y_comb, tau = u)$coefficients
+  beta_fusion <- rq.fit.lasso(x_comb_tilde, y_comb, tau = u)$coefficients
   return(beta_fusion)
 }
 
@@ -835,7 +869,8 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     y0_cut2 <- y_target[-X0_index]
     # CV1:
     # Step 1.2: train sparse quantile regression for I for X0, y0:
-    beta_0_hat <- rq.fit.lasso(X0_cut1, y0_cut1, tau=u)$coefficients
+    X0_cut1_tilde <- cbind(rep(1, nrow(X0_cut1)), X0_cut1)
+    beta_0_hat <- rq.fit.lasso(X0_cut1_tilde, y0_cut1, tau=u)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     # source:
     if (parallel == FALSE){
@@ -899,7 +934,8 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
     }
     # CV2
     # Step 1.2: train sparse quantile regression for I for X0, y0:
-    beta_0_hat <- rq.fit.lasso(X0_cut2, y0_cut2, tau = u)$coefficients
+    X0_cut2_tilde <- cbind(rep(1, nrow(X0_cut2)), X0_cut2)
+    beta_0_hat <- rq.fit.lasso(X0_cut2_tilde, y0_cut2, tau = u)$coefficients
     # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     if (parallel == FALSE){
       for (k in 1:length(x_aux_bd)) {
