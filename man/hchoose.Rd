@@ -8,8 +8,8 @@ hchoose(
   x,
   y,
   u,
-  lowc = 0.1,
-  upc = 10,
+  lowc = 0.05,
+  upc = 5,
   thresh = 1e-10,
   length.out = 25,
   maxit = 1e+06
@@ -23,10 +23,10 @@ hchoose(
 \item{u}{A scalar for the quantile level.}
 
 \item{lowc}{Constant used for calculating lower bound of bandwidth according
-to our paper, default is 0.1.}
+to our paper, default is 0.05.}
 
 \item{upc}{Constant used for calculating upper bound of bandwidth according
-to our paper, default is 10.}
+to our paper, default is 5.}
 
 \item{thresh}{The threshold used to determine the sparsity of initial,
 default is 1e-10.}

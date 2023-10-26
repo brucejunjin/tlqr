@@ -79,13 +79,11 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
     for (i in 0:M) {
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, cbind(rep(1, floor(n / 0.8) + 1),
-                          mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
-                          tol = 1e-10))
+        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+                                  tol = 1e-10)
                ,envir = .GlobalEnv)
       } else {
-        assign(nam, cbind(rep(1, n),
-                          mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10)),
+        assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
                envir = .GlobalEnv)
       }
       assign(paste0("sigma_", i), sigma)
@@ -100,13 +98,11 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
       }
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, cbind(rep(1, floor(n / 0.8) + 1),
-                          mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
-                                  tol = 1e-10))
+        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+                                  tol = 1e-10)
                ,envir = .GlobalEnv)
       } else{
-        assign(nam, cbind(rep(1, n),
-                          mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10)),
+        assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
                envir = .GlobalEnv)
       }
       assign(paste0("sigma_", i), sigma)
@@ -118,45 +114,45 @@ data_generation <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
   if (res_type == 'normal'){
     btild0 <- get(paste0('beta_', 0))
     bt0 <- btild0[2:length(btild0)]
-    assign("y_0", get(paste0('X_', 0)) %*% btild0 +
-          rnorm(n = floor(n / 0.8) + 1,
-                qnorm(0.2, mean = 0, sd = t(bt0) %*%
-                      get(paste0('sigma_', 0)) %*% bt0 / eta),
-                sd = t(bt0) %*% get(paste0('sigma_', 0)) %*% bt0 / eta),
-          envir = .GlobalEnv)
+    assign("y_0", get(paste0('X_', 0)) %*% bt0 +
+             rnorm(n = floor(n / 0.8) + 1,
+                   qnorm(0.2, mean = 0, sd = t(bt0) %*%
+                           get(paste0('sigma_', 0)) %*% bt0 / eta),
+                   sd = t(bt0) %*% get(paste0('sigma_', 0)) %*% bt0 / eta),
+           envir = .GlobalEnv)
     for (i in 1:M){
       btildi <- get(paste0('beta_', i))
       bti <- btildi[2:length(btildi)]
       nam <- paste0("y_", i)
-      assign(nam, get(paste0('X_', i)) %*% btildi +
-            rnorm(n = n,
-                  qnorm(0.2, mean = 0, sd = t(bti) %*%
-                        get(paste0('sigma_', i)) %*% bti / eta),
-                  sd = t(bti) %*% get(paste0('sigma_', i)) %*% bti / eta),
-            envir = .GlobalEnv)
+      assign(nam, get(paste0('X_', i)) %*% bti +
+               rnorm(n = n,
+                     qnorm(0.2, mean = 0, sd = t(bti) %*%
+                             get(paste0('sigma_', i)) %*% bti / eta),
+                     sd = t(bti) %*% get(paste0('sigma_', i)) %*% bti / eta),
+             envir = .GlobalEnv)
     }
   } else if (res_type == 'cauchy'){
     btild0 <- get(paste0('beta_', 0))
     bt0 <- btild0[2:length(btild0)]
-    assign("y_0", get(paste0('X_', 0)) %*% btild0 +
-           rcauchy(n = floor(n / 0.8) + 1,
-                  qcauchy(0.2, location = 0,
-                          scale =  t(bt0) %*%
-                            get(paste0('sigma_', 0)) %*% bt0 / eta),
-                  scale = t(bt0) %*%
-                    get(paste0('sigma_', 0)) %*% bt0 / eta),
+    assign("y_0", get(paste0('X_', 0)) %*% bt0 +
+             rcauchy(n = floor(n / 0.8) + 1,
+                     qcauchy(0.2, location = 0,
+                             scale =  t(bt0) %*%
+                               get(paste0('sigma_', 0)) %*% bt0 / eta),
+                     scale = t(bt0) %*%
+                       get(paste0('sigma_', 0)) %*% bt0 / eta),
            envir = .GlobalEnv)
     for (i in 1:M) {
       btildi <- get(paste0('beta_', i))
       bti <- btildi[2:length(btildi)]
       nam <- paste0("y_", i)
-      assign(nam, get(paste0('X_', i)) %*% btildi +
-             rcauchy(n = n,
-                     qcauchy(0.2, location = 0,
-                     scale =  t(bti) %*%
-                       get(paste0('sigma_', i)) %*% bti / eta),
-                     scale = t(bti) %*%
-                       get(paste0('sigma_', i)) %*% bti / eta),
+      assign(nam, get(paste0('X_', i)) %*% bti +
+               rcauchy(n = n,
+                       qcauchy(0.2, location = 0,
+                               scale =  t(bti) %*%
+                                 get(paste0('sigma_', i)) %*% bti / eta),
+                       scale = t(bti) %*%
+                         get(paste0('sigma_', i)) %*% bti / eta),
              envir = .GlobalEnv)
     }
   } else {
@@ -185,9 +181,9 @@ K <- function(x) {
 #' @param y response vector.
 #' @param u A scalar for the quantile level.
 #' @param lowc Constant used for calculating lower bound of bandwidth according
-#' to our paper, default is 0.1.
+#' to our paper, default is 0.05.
 #' @param upc Constant used for calculating upper bound of bandwidth according
-#' to our paper, default is 10.
+#' to our paper, default is 5.
 #' @param thresh The threshold used to determine the sparsity of initial,
 #' default is 1e-10.
 #' @param length.out The number of grid search points for searching the best
@@ -196,13 +192,16 @@ K <- function(x) {
 #' search, default is 1e6.
 #' @importFrom quantreg rq.fit.lasso
 #' @importFrom glmnet cv.glmnet glmnet
-hchoose <- function(x, y, u, lowc = 0.1, upc = 10, thresh = 1e-10,
+hchoose <- function(x, y, u, lowc = 0.05, upc = 5, thresh = 1e-10,
                     length.out = 25, maxit = 1e6) {
   n <- nrow(x)
   xtilde <- cbind(rep(1, n), x)
   beta_hat <- quantreg::rq.fit.lasso(xtilde, y, tau = u)$coefficients
   shat <- sum(abs(beta_hat) > (max(abs(beta_hat[2:length(beta_hat)]))
                                * thresh))
+  if (shat >= 0.15 * n){
+    length.out = 2 * length.out
+  }
   lowb <- lowc * (sqrt(shat * log(n) / n) + lowc * shat ^ (3 / 2) * log(n) / n)
   upb <- upc * (sqrt(shat * log(n) / n) + upc * shat ^ (3 / 2) * log(n) / n)
   hlist <- seq(from = lowb, to = upb, length.out = length.out)
@@ -216,7 +215,7 @@ hchoose <- function(x, y, u, lowc = 0.1, upc = 10, thresh = 1e-10,
       bfit <- glmnet(x = x, y = y_tild, lambda = cvfit$lambda.min,
                      standardize = FALSE)
       b_hat <- rbind(bfit$a0, bfit$beta)
-      return(cdloss(x = x, y = y, beta = b_hat, u = u))
+      return(cdloss(x = x, y = y, beta = as.vector(b_hat), u = u))
     } else{
       return(1e8)
     }
@@ -357,14 +356,15 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   wfit <- glmnet(x = x_comb, y = y_comb, lambda = lambda1,
                   standardize = FALSE, alpha = 1)
-  w_hat <- rbind(wfit$a0, wfit$beta)
+  w_hat <- as.vector(rbind(wfit$a0, wfit$beta))
   # Step 3:
   if (is.null(lambda2)) {
     lambda2 <- lambda1 * sqrt(nrow(x_comb) / nrow(x_target))
   }
-  deltafit <- glmnet(x = x_target, y = y_target_tild - (x_target %*% w_hat),
-                     lambda = lambda2, standardize = FALSE, alpha = 1)
-  delta_hat <- rbind(deltafit$a0, deltafit$beta)
+  deltafit <- glmnet(x = x_target, y = y_target_tild -
+                       (x_target_tilde %*% w_hat), lambda = lambda2,
+                     standardize = FALSE, alpha = 1)
+  delta_hat <- as.vector(rbind(deltafit$a0, deltafit$beta))
   return(w_hat + delta_hat)
 }
 
@@ -495,7 +495,7 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   }
   wfit <- glmnet(x = x_comb, y = y_comb, lambda = lambda1,
                   standardize = FALSE, alpha = 1)
-  w_hat <- rbind(wfit$a0, wfit$beta)
+  w_hat <- as.vector(rbind(wfit$a0, wfit$beta))
   return(w_hat)
 }
 
@@ -518,12 +518,12 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u_target,
   if (is.null(hic)) {
     hic <- hchoose(X_measure, y_measure, u_target)
   }
-  X_measure_tide <- cbind(rep(1, nrow(X_measure_tide)), X_measure_tide)
-  f_hat <- mean(apply((y_measure - X_measure_tide %*% betaic / hic), 1, K)) /
+  X_measure_tilde <- cbind(rep(1, nrow(X_measure)), X_measure)
+  f_hat <- mean(apply((y_measure - X_measure_tilde %*% betaic / hic), 1, K)) /
     hic
-  y_measure_tilde <- X_measure_tide %*% betaic - f_hat ^ (-1) *
-    (ifelse(y_measure - X_measure_tide %*% betaic <= 0, 1, 0) - u_target)
-  return(mean((y_measure_tilde - X_measure_tide %*% betahat) ^ 2))
+  y_measure_tilde <- X_measure_tilde %*% betaic - f_hat ^ (-1) *
+    (ifelse(y_measure - X_measure_tilde %*% betaic <= 0, 1, 0) - u_target)
+  return(mean((y_measure_tilde - X_measure_tilde %*% betahat) ^ 2))
 }
 
 #' Main function for informative sources detection among all dataset
