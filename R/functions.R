@@ -288,6 +288,7 @@ rq.transfer <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   # For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
+    ncore <- min(ncore, length(x_aux_bd))
     cl <- makeCluster(min(detectCores() - 3, ncore))
     registerDoSNOW(cl)
     pb <- txtProgressBar(max = length(x_aux_bd), style = 3)
@@ -427,6 +428,7 @@ rq.fusion <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
   # For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
+    ncore <- min(ncore, length(x_aux_bd))
     cl <- makeCluster(min(detectCores() - 3, ncore))
     registerDoSNOW(cl)
     pb <- txtProgressBar(max = length(x_aux_bd), style = 3)
@@ -599,6 +601,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       }
     } else{
       i <- NULL # pass R-CMD check
+      ncore <- min(ncore, M)
       cl <- makeCluster(min(detectCores() - 3, ncore))
       registerDoSNOW(cl)
       pb <- txtProgressBar(max = M, style = 3)
@@ -683,6 +686,7 @@ info_detect <- function(x_target, y_target, x_aux_bd, y_aux_bd, u_target,
       }
     } else{
       i <- NULL # pass R-CMD check
+      ncore <- min(ncore, M)
       cl <- makeCluster(min(detectCores() - 3, ncore))
       registerDoSNOW(cl)
       pb <- txtProgressBar(max = M, style = 3)
@@ -881,6 +885,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
       }
     } else{
       i <- NULL # pass R-CMD check
+      ncore <- min(ncore, M)
       cl <- makeCluster(min(detectCores() - 3, ncore))
       registerDoSNOW(cl)
       pb <- txtProgressBar(max = M, style = 3)
@@ -945,6 +950,7 @@ info_detect.pool <- function(x_target, y_target, x_aux_bd, y_aux_bd, u,
       }
     } else{
       i <- NULL # pass R-CMD check
+      ncore <- min(ncore, M)
       cl <- makeCluster(min(detectCores() - 3, ncore))
       registerDoSNOW(cl)
       pb <- txtProgressBar(max = M, style = 3)
