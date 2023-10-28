@@ -5,7 +5,7 @@
 \title{Build the auxiliary function to compute quantile loss for informative
 sources detection}
 \usage{
-Q_loss(betahat, betaic, X_measure, y_measure, u_target, hic = NULL)
+Q_loss(betahat, betaic, X_measure, y_measure, u.target, control = list())
 }
 \arguments{
 \item{betahat}{Estimator for target only from training part.}
@@ -18,11 +18,10 @@ for the test.}
 \item{y_measure}{A vector as the response from the population that is
 waiting for the test.}
 
-\item{u_target}{A scalar in (0,1). The quantile level for informative
+\item{u.target}{A scalar in (0,1). The quantile level for informative
 source detection testing.}
 
-\item{hic}{A scalar >0. The smoothing bandwidth for calculate the loss. If
-not provided, then the cross validation will be carried out.}
+\item{control}{The list object for control, see \code{tlqr.control}.}
 }
 \value{
 A scalar. The quantile loss for given estimator on the given
