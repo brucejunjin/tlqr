@@ -249,8 +249,12 @@ ChooseBandwidth <- function(x, y, u, control = list()) {
 #' @param hic A scalar >0. The smoothing bandwidth for calculate the loss.
 #' Default is \code{NULL}. If \code{NULL}, then the cross validation will be
 #' carried out.
-#' @param parallel A logic variable to determine whether the Step 1 in our
-#' proposed method run with parallel computation, default is \code{FALSE}.
+#' @param detect.parallel A logic variable to determine whether the
+#' informative set detection is parallel for sources, default is
+#' \code{FALSE}.
+#' @param compute.parallel A logic variable to determine whether the Step 1
+#' in our proposed method run with parallel computation, default is
+#' \code{FALSE}.
 #' @param ncore The integer, the number of cores used for parallel computation.
 #' @param seed An integer for random seed for data split in infotmative set
 #' detection procedure, default is 111.
@@ -269,11 +273,13 @@ ChooseBandwidth <- function(x, y, u, control = list()) {
 #' @param verbose A logic variable to control the print of loss during
 #' informative set detection, default is FALSE.
 #' @export
-tlqr.control <- function(h = NULL, hic = NULL, parallel = FALSE, ncore = 20,
+tlqr.control <- function(h = NULL, hic = NULL, detect.parallel = TRUE,
+                         compute.parallel = FALSE, ncore = 20,
                          seed = 111, lowc = 0.05, upc = 1, thresh = 1e-10,
                          length.out = 25, max.it = 1e6, max.round = 5,
                          verbose = FALSE) {
-  value <- list('h' = h, 'hic' = hic, 'parallel' = parallel, 'ncore' = ncore,
+  value <- list('h' = h, 'hic' = hic, 'detect.parallel' = detect.parallel,
+                'compute.parallel' = compute.parallel, 'ncore' = ncore,
                 'seed' = seed, 'lowc' = lowc, 'upc' = upc, 'thresh' = thresh,
                 'length.out' = length.out, 'max.it' = max.it,
                 'max.round' = max.round, 'verbose' = verbose)
@@ -321,7 +327,7 @@ TransferQR <- function(x.target, y.target, x.source, y.source, u.target,
   internal.params <- do.call("tlqr.control", control)
   seed <- internal.params$seed
   h <- internal.params$h
-  parallel <- internal.params$parallel
+  parallel <- internal.params$compute.parallel
   ncore <- internal.params$ncore
   set.seed(seed)
   nt <- nrow(x.target)
@@ -461,7 +467,7 @@ FusionQR <- function(x.target, y.target, x.source, y.source, u.target,
   internal.params <- do.call("tlqr.control", control)
   seed <- internal.params$seed
   h <- internal.params$h
-  parallel <- internal.params$parallel
+  parallel <- internal.params$compute.parallel
   ncore <- internal.params$ncore
   set.seed(seed)
   nt <- nrow(x.target)
@@ -577,7 +583,7 @@ Q_loss <- function(betahat, betaic, X_measure, y_measure, u.target,
     hic <- ChooseBandwidth(X_measure, y_measure, u.target, control)
   }
   X_measure_tilde <- cbind(rep(1, nrow(X_measure)), X_measure)
-  f_hat <- mean(apply((y_measure - X_measure_tilde %*% betaic / hic), 1, K)) /
+  f_hat <- mean(apply(((y_measure - X_measure_tilde %*% betaic) / hic), 1, K)) /
     hic
   y_measure_tilde <- X_measure_tilde %*% betaic - f_hat ^ (-1) *
     (ifelse(y_measure - X_measure_tilde %*% betaic <= 0, 1, 0) - u.target)
@@ -620,7 +626,7 @@ DetectQR <- function(x.target, y.target, x.source, y.source, u.target,
     internal.params <- do.call("tlqr.control", control)
     seed <- internal.params$seed
     h <- internal.params$h
-    parallel <- internal.params$parallel
+    parallel <- internal.params$detect.parallel
     ncore <- internal.params$ncore
     verbose <- internal.params$verbose
     set.seed(seed)
@@ -968,7 +974,7 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
   } else {
     internal.params <- do.call("tlqr.control", control)
     seed <- internal.params$seed
-    parallel <- internal.params$parallel
+    parallel <- internal.params$detect.parallel
     ncore <- internal.params$ncore
     verbose <- internal.params$verbose
     set.seed(seed)

@@ -7,7 +7,8 @@
 tlqr.control(
   h = NULL,
   hic = NULL,
-  parallel = FALSE,
+  detect.parallel = TRUE,
+  compute.parallel = FALSE,
   ncore = 20,
   seed = 111,
   lowc = 0.05,
@@ -28,8 +29,13 @@ if \code{NULL}, cross validation will be carried out.}
 Default is \code{NULL}. If \code{NULL}, then the cross validation will be
 carried out.}
 
-\item{parallel}{A logic variable to determine whether the Step 1 in our
-proposed method run with parallel computation, default is \code{FALSE}.}
+\item{detect.parallel}{A logic variable to determine whether the
+informative set detection is parallel for sources, default is
+\code{FALSE}.}
+
+\item{compute.parallel}{A logic variable to determine whether the Step 1
+in our proposed method run with parallel computation, default is
+\code{FALSE}.}
 
 \item{ncore}{The integer, the number of cores used for parallel computation.}
 
