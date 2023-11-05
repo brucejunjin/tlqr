@@ -17,7 +17,7 @@ QuantileLoss <- function(x, y, beta, u) {
 #' @export
 #' @param p Input integer. Default is 150. The dimensionality for the
 #' covariate.
-#' @param n Input integer. Default is 200. The sample size for each datasets,
+#' @param n Input integer. Default is 150. The sample size for each datasets,
 #' including all the target and sources.
 #' @param s Input integer. Default is 5. The sparsity level in the simulation.
 #' @param d Input scalar. Default is 2. Control the scale of the Laplace
@@ -33,18 +33,20 @@ QuantileLoss <- function(x, y, beta, u) {
 #' Toeplitz covariance matrix. No other value is permitted.
 #' @param res_type Input string. Default is 'normal'. Control the type of
 #' distribution for residual. Only one from 'normal' and 'cauchy' is allowed.
+#' @param train.ratio The ratio of sample size in training to the whole data.
+#' Default is 0.25, which means the size of training equals to size of testing.
 #' @param seed An integer for random seed, default is 111.
 #' @importFrom stats toeplitz rnorm rcauchy qcauchy qnorm
 #' @importFrom MASS mvrnorm
 #' @importFrom ExtDist rLaplace
 #' @return NULL. But will generate correspoding pairs of (X,y) in global
 #' enviroment.
-DataDemo <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
+DataDemo <- function(p = 150, n = 150, s = 20, d = 2, An = 5, M = 10,
                      eta = 20, cov_type = 'auto', res_type = 'normal',
-                     seed = 111)
+                     train.ratio = 0.25, seed = 111)
 {
   set.seed(seed)
-  # Construct beta
+  ## Construct beta
   beta_0 <- rep(0, p + 1)
   beta_0[2:(s + 1)] <- 1
   assign('beta_0', beta_0, envir = .GlobalEnv)
@@ -68,7 +70,7 @@ DataDemo <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
       assign(nam, beta_0 + c(0, ksi_add), envir = .GlobalEnv)
     }
   }
-  # Construct covariates:
+  ## Construct covariates:
   if (cov_type == 'auto') {
     sigma <- matrix(rep(0, p * p), nrow = p, byrow = TRUE)
     for (i in 1:p) {
@@ -80,7 +82,7 @@ DataDemo <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
     for (i in 0:M) {
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+        assign(nam, mvrnorm(n = floor(n / train.ratio) + 1, rep(0, p), sigma,
                                   tol = 1e-10)
                ,envir = .GlobalEnv)
       } else {
@@ -99,7 +101,7 @@ DataDemo <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
       }
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, mvrnorm(n = floor(n / 0.8) + 1, rep(0, p), sigma,
+        assign(nam, mvrnorm(n = floor(n / train.ratio) + 1, rep(0, p), sigma,
                                   tol = 1e-10)
                ,envir = .GlobalEnv)
       } else{
@@ -111,12 +113,12 @@ DataDemo <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
   } else{
     print('wrong covariance type!')
   }
-  # Construct response:
+  ## Construct response:
   if (res_type == 'normal'){
     btild0 <- get(paste0('beta_', 0))
     bt0 <- btild0[2:length(btild0)]
     assign("y_0", get(paste0('X_', 0)) %*% bt0 +
-             rnorm(n = floor(n / 0.8) + 1,
+             rnorm(n = floor(n / train.ratio) + 1,
                    qnorm(0.2, mean = 0, sd = t(bt0) %*%
                            get(paste0('sigma_', 0)) %*% bt0 / eta),
                    sd = t(bt0) %*% get(paste0('sigma_', 0)) %*% bt0 / eta),
@@ -136,7 +138,7 @@ DataDemo <- function(p = 150, n = 200, s = 20, d = 2, An = 5, M = 10,
     btild0 <- get(paste0('beta_', 0))
     bt0 <- btild0[2:length(btild0)]
     assign("y_0", get(paste0('X_', 0)) %*% bt0 +
-             rcauchy(n = floor(n / 0.8) + 1,
+             rcauchy(n = floor(n / train.ratio) + 1,
                      qcauchy(0.2, location = 0,
                              scale =  t(bt0) %*%
                                get(paste0('sigma_', 0)) %*% bt0 / eta),
@@ -331,12 +333,12 @@ TransferQR <- function(x.target, y.target, x.source, y.source, u.target,
   ncore <- internal.params$ncore
   set.seed(seed)
   nt <- nrow(x.target)
-  # Step 1:
-  # For target
+  ## Step 1:
+  ## For target
   x.target.tilde <- cbind(rep(1, nt), x.target)
   beta_target_hat <- rq.fit.lasso(x.target.tilde, y.target,
                                   tau = u.target)$coefficients
-  # CV for h selection if NULL
+  ## CV for h selection if NULL
   if (is.null(h)) {
     h_target <- ChooseBandwidth(x.target, y.target, u.target, control)
   } else{
@@ -347,7 +349,7 @@ TransferQR <- function(x.target, y.target, x.source, y.source, u.target,
   y.target.tilde <- x.target.tilde %*% beta_target_hat - f_target_hat ^ -1 *
     (ifelse(y.target - x.target.tilde %*% beta_target_hat <= 0, 1, 0) -
        u.target)
-  # For source
+  ## For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
     ncore <- min(ncore, length(x.source))
@@ -420,7 +422,7 @@ TransferQR <- function(x.target, y.target, x.source, y.source, u.target,
   wfit <- glmnet(x = x_comb, y = y_comb, lambda = lambda1,
                   standardize = FALSE, alpha = 1)
   w_hat <- as.vector(rbind(wfit$a0, wfit$beta))
-  # Step 3:
+  ## Step 3:
   if (is.null(lambda2)) {
     lambda2 <- lambda1 * sqrt(nrow(x_comb) / nrow(x.target))
   }
@@ -471,8 +473,8 @@ FusionQR <- function(x.target, y.target, x.source, y.source, u.target,
   ncore <- internal.params$ncore
   set.seed(seed)
   nt <- nrow(x.target)
-  # Step 1:
-  # For target
+  ## Step 1:
+  ## For target
   x.target.tilde <- cbind(rep(1, nt), x.target)
   beta_target_hat <- rq.fit.lasso(x.target.tilde, y.target,
                                   tau = u.target)$coefficients
@@ -486,7 +488,7 @@ FusionQR <- function(x.target, y.target, x.source, y.source, u.target,
   y.target.tilde <- x.target.tilde %*% beta_target_hat - f_target_hat ^ -1 *
     (ifelse(y.target - x.target.tilde %*% beta_target_hat <= 0, 1, 0) -
        u.target)
-  # For source
+  ## For source
   if (parallel == TRUE){
     i <- NULL # pass R-CMD check
     ncore <- min(ncore, length(x.source))
@@ -543,7 +545,7 @@ FusionQR <- function(x.target, y.target, x.source, y.source, u.target,
            u_source)
     }
   }
-  # Step 2:
+  ## Step 2:
   x_comb <- x.target
   for (k in 1:length(x.source)) {
     x_comb <- rbind(x_comb, x.source[[k]])
@@ -631,7 +633,7 @@ DetectQR <- function(x.target, y.target, x.source, y.source, u.target,
     verbose <- internal.params$verbose
     set.seed(seed)
     M <- length(x.source)
-    # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
+    ## Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
     target_index <- 1:nrow(x.target)
     X0_index <- sample(target_index, size = round(nrow(x.target) / 2),
                        replace = FALSE)
@@ -639,13 +641,13 @@ DetectQR <- function(x.target, y.target, x.source, y.source, u.target,
     X0_cut2 <- x.target[-X0_index,]
     y0_cut1 <- y.target[X0_index]
     y0_cut2 <- y.target[-X0_index]
-    # CV1:
+    ## CV1:
     X0_cut1_tilde <- cbind(rep(1, nrow(X0_cut1)), X0_cut1)
-    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    ## Step 1.2: train sparse quantile regression for I for X0, y0:
     beta_0_hat <- rq.fit.lasso(X0_cut1_tilde, y0_cut1,
                                tau = u.target)$coefficients
-    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
-    # source:
+    ## Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    ## source:
     if (parallel == FALSE){
       for (k in 1:length(x.source)) {
         assign(paste0(paste0('beta_', k), '_hat'),
@@ -716,8 +718,8 @@ DetectQR <- function(x.target, y.target, x.source, y.source, u.target,
     ## Step 1.2: train sparse quantile regression for I for X0, y0:
     beta_0_hat <- rq.fit.lasso(X0_cut2_tilde, y0_cut2,
                                tau = u.target)$coefficients
-    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
-    # source:
+    ## Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    ## source:
     if (parallel == FALSE){
       for (k in 1:length(x.source)) {
         assign(paste0(paste0('beta_', k), '_hat'),
@@ -755,8 +757,8 @@ DetectQR <- function(x.target, y.target, x.source, y.source, u.target,
              Q_loss(get(paste0(paste0('beta_', k), '_hat')), beta_0_hatic,
                     X0_cut1, y0_cut1, u.target, control = list(hic = hic)))
     }
-    # Step 3: Get informative sets:
-    # Step 3.1 true
+    ## Step 3: Get informative sets:
+    ## Step 3.1 true
     index_true2 <- c()
     if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
@@ -771,7 +773,7 @@ DetectQR <- function(x.target, y.target, x.source, y.source, u.target,
         next
       }
     }
-    # Step 3.2 psd
+    ## Step 3.2 psd
     index_psd2 <- NULL
     if (!is.null(ninfo)) {
       Q_K_vec <- c()
@@ -890,7 +892,7 @@ TransferPoolQR <- function(x.target, y.target, x.source, y.source, u){
       break
     }
   }
-  # fusion
+  ## fusion
   x.target.tilde <- cbind(rep(1, nrow(x.target)), x.target)
   x_comb <- x.target
   for (k in 1:length(x.source)){
@@ -902,7 +904,7 @@ TransferPoolQR <- function(x.target, y.target, x.source, y.source, u){
     y_comb <- c(y_comb, y.source[[k]])
   }
   beta_fusion <- rq.fit.lasso(x_comb_tilde, y_comb, tau = u)$coefficients
-  # debias
+  ## debias
   beta_db <- rq.fit.lasso(x.target.tilde,
                           y.target - (x.target.tilde %*% beta_fusion),
                           tau = u)$coefficients
@@ -930,7 +932,7 @@ FusionPoolQR <- function(x.target, y.target, x.source, y.source, u) {
       break
     }
   }
-  # fusion
+  ## fusion
   x_comb <- x.target
   for (k in 1:length(x.source)){
     x_comb <- rbind(x_comb, x.source[[k]])
@@ -979,7 +981,7 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
     verbose <- internal.params$verbose
     set.seed(seed)
     M <- length(x.source)
-    # Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
+    ## Step 1.1: cut the target half and half: (remark: 1 for I, 2 for Ic)
     target_index <- 1:nrow(x.target)
     X0_index <- sample(target_index, size = round(nrow(x.target) / 2),
                        replace = FALSE)
@@ -987,12 +989,12 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
     X0_cut2 <- x.target[-X0_index,]
     y0_cut1 <- y.target[X0_index]
     y0_cut2 <- y.target[-X0_index]
-    # CV1:
-    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    ## CV1:
+    ## Step 1.2: train sparse quantile regression for I for X0, y0:
     X0_cut1_tilde <- cbind(rep(1, nrow(X0_cut1)), X0_cut1)
     beta_0_hat <- rq.fit.lasso(X0_cut1_tilde, y0_cut1, tau=u)$coefficients
-    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
-    # source:
+    ## Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    ## source:
     if (parallel == FALSE){
       for (k in 1:length(x.source)) {
         assign(paste0(paste0('beta_', k), '_hat'),
@@ -1019,14 +1021,14 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
         assign(paste0(paste0('beta_', k), '_hat'), betasources[, k])
       }
     }
-    # Step 2: Calculate the loss based on the loss function:
+    ## Step 2: Calculate the loss based on the loss function:
     for (k in c(0, (1:length(x.source)))) {
       assign(paste0('Q', k),
              QuantileLoss(X0_cut2, y0_cut2,
                           get(paste0(paste0('beta_', k), '_hat')), u))
     }
-    # Step 3: Get informative sets:
-    # Step 3.1 true
+    ## Step 3: Get informative sets:
+    ## Step 3.1 true
     index_true1 <- c()
     if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
@@ -1041,7 +1043,7 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
         next
       }
     }
-    # Step 3.2 psd
+    ## Step 3.2 psd
     index_psd1 <- NULL
     if (!is.null(ninfo)) {
       Q_K_vec <- c()
@@ -1053,11 +1055,11 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
     } else{
       index_psd1 <- c()
     }
-    # CV2
-    # Step 1.2: train sparse quantile regression for I for X0, y0:
+    ## CV2
+    ## Step 1.2: train sparse quantile regression for I for X0, y0:
     X0_cut2_tilde <- cbind(rep(1, nrow(X0_cut2)), X0_cut2)
     beta_0_hat <- rq.fit.lasso(X0_cut2_tilde, y0_cut2, tau = u)$coefficients
-    # Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
+    ## Step 1.3: train sparse quantile regression for I for X0, y0 + k-th
     if (parallel == FALSE){
       for (k in 1:length(x.source)) {
         assign(paste0(paste0('beta_', k), '_hat'),
@@ -1084,14 +1086,14 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
         assign(paste0(paste0('beta_', k), '_hat'), betasources[, k])
       }
     }
-    # Step 2: Calculate the loss based on the loss function:
+    ## Step 2: Calculate the loss based on the loss function:
     for (k in c(0, (1:length(x.source)))) {
       assign(paste0('Q', k),
              QuantileLoss(X0_cut1, y0_cut1,
                           get(paste0(paste0('beta_', k), '_hat')), u))
     }
-    # Step 3: Get informative sets:
-    # Step 3.1 true
+    ## Step 3: Get informative sets:
+    ## Step 3.1 true
     index_true2 <- c()
     if (verbose == TRUE) {
       print(get(paste0('Q', 0)))
@@ -1106,7 +1108,7 @@ DetectPoolQR <- function(x.target, y.target, x.source, y.source, u,
         next
       }
     }
-    # Step 3.2 psd
+    ## Step 3.2 psd
     index_psd2 <- NULL
     if (!is.null(ninfo)) {
       Q_K_vec <- c()

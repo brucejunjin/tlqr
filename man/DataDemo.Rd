@@ -6,7 +6,7 @@
 \usage{
 DataDemo(
   p = 150,
-  n = 200,
+  n = 150,
   s = 20,
   d = 2,
   An = 5,
@@ -14,6 +14,7 @@ DataDemo(
   eta = 20,
   cov_type = "auto",
   res_type = "normal",
+  train.ratio = 0.25,
   seed = 111
 )
 }
@@ -21,7 +22,7 @@ DataDemo(
 \item{p}{Input integer. Default is 150. The dimensionality for the
 covariate.}
 
-\item{n}{Input integer. Default is 200. The sample size for each datasets,
+\item{n}{Input integer. Default is 150. The sample size for each datasets,
 including all the target and sources.}
 
 \item{s}{Input integer. Default is 5. The sparsity level in the simulation.}
@@ -44,6 +45,9 @@ Toeplitz covariance matrix. No other value is permitted.}
 
 \item{res_type}{Input string. Default is 'normal'. Control the type of
 distribution for residual. Only one from 'normal' and 'cauchy' is allowed.}
+
+\item{train.ratio}{The ratio of sample size in training to the whole data.
+Default is 0.25, which means the size of training equals to size of testing.}
 
 \item{seed}{An integer for random seed, default is 111.}
 }
