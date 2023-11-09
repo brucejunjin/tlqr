@@ -17,8 +17,10 @@ QuantileLoss <- function(x, y, beta, u) {
 #' @export
 #' @param p Input integer. Default is 150. The dimensionality for the
 #' covariate.
-#' @param n Input integer. Default is 150. The sample size for each datasets,
+#' @param n Input integer. Default is 150. The sample size for each dataset,
 #' including all the target and sources.
+#' @param ntest Input integer. Default is 150. The testing sample size from
+#' the target population.
 #' @param s Input integer. Default is 5. The sparsity level in the simulation.
 #' @param d Input scalar. Default is 2. Control the scale of the Laplace
 #' distribution, larger d leads to smaller similarity between the target and
@@ -33,17 +35,15 @@ QuantileLoss <- function(x, y, beta, u) {
 #' Toeplitz covariance matrix. No other value is permitted.
 #' @param res_type Input string. Default is 'normal'. Control the type of
 #' distribution for residual. Only one from 'normal' and 'cauchy' is allowed.
-#' @param train.ratio The ratio of sample size in training to the whole data.
-#' Default is 0.25, which means the size of training equals to size of testing.
 #' @param seed An integer for random seed, default is 111.
 #' @importFrom stats toeplitz rnorm rcauchy qcauchy qnorm
 #' @importFrom MASS mvrnorm
 #' @importFrom ExtDist rLaplace
 #' @return NULL. But will generate correspoding pairs of (X,y) in global
 #' enviroment.
-DataDemo <- function(p = 150, n = 150, s = 20, d = 2, An = 5, M = 10,
-                     eta = 20, cov_type = 'auto', res_type = 'normal',
-                     train.ratio = 0.25, seed = 111)
+DataDemo <- function(p = 150, n = 150, ntest = 150, s = 20, d = 2, An = 5,
+                     M = 10, eta = 20, cov_type = 'auto', res_type = 'normal',
+                     seed = 111)
 {
   set.seed(seed)
   ## Construct beta
@@ -82,9 +82,8 @@ DataDemo <- function(p = 150, n = 150, s = 20, d = 2, An = 5, M = 10,
     for (i in 0:M) {
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, mvrnorm(n = floor(n / train.ratio) + 1, rep(0, p), sigma,
-                                  tol = 1e-10)
-               ,envir = .GlobalEnv)
+        assign(nam, mvrnorm(n = n + ntest, rep(0, p), sigma, tol = 1e-10),
+               envir = .GlobalEnv)
       } else {
         assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
                envir = .GlobalEnv)
@@ -101,9 +100,8 @@ DataDemo <- function(p = 150, n = 150, s = 20, d = 2, An = 5, M = 10,
       }
       nam <- paste0("X_", i)
       if (i == 0) {
-        assign(nam, mvrnorm(n = floor(n / train.ratio) + 1, rep(0, p), sigma,
-                                  tol = 1e-10)
-               ,envir = .GlobalEnv)
+        assign(nam, mvrnorm(n = n + ntest, rep(0, p), sigma, tol = 1e-10),
+               envir = .GlobalEnv)
       } else{
         assign(nam, mvrnorm(n = n, rep(0, p), sigma, tol = 1e-10),
                envir = .GlobalEnv)
@@ -118,7 +116,7 @@ DataDemo <- function(p = 150, n = 150, s = 20, d = 2, An = 5, M = 10,
     btild0 <- get(paste0('beta_', 0))
     bt0 <- btild0[2:length(btild0)]
     assign("y_0", get(paste0('X_', 0)) %*% bt0 +
-             rnorm(n = floor(n / train.ratio) + 1,
+             rnorm(n = n + ntest,
                    qnorm(0.2, mean = 0, sd = t(bt0) %*%
                            get(paste0('sigma_', 0)) %*% bt0 / eta),
                    sd = t(bt0) %*% get(paste0('sigma_', 0)) %*% bt0 / eta),
@@ -138,7 +136,7 @@ DataDemo <- function(p = 150, n = 150, s = 20, d = 2, An = 5, M = 10,
     btild0 <- get(paste0('beta_', 0))
     bt0 <- btild0[2:length(btild0)]
     assign("y_0", get(paste0('X_', 0)) %*% bt0 +
-             rcauchy(n = floor(n / train.ratio) + 1,
+             rcauchy(n = n + ntest,
                      qcauchy(0.2, location = 0,
                              scale =  t(bt0) %*%
                                get(paste0('sigma_', 0)) %*% bt0 / eta),
